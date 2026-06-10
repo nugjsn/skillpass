@@ -180,6 +180,24 @@ export function F1RaceTrack({
                         90% { transform: translate(1px, 2px) rotate(0deg); }
                         100% { transform: translate(1px, -2px) rotate(-1deg); }
                     }
+                    @keyframes car-vibrate {
+                        0% { transform: translate(0, 0); }
+                        25% { transform: translate(-0.5px, -1px); }
+                        50% { transform: translate(0.5px, 0); }
+                        75% { transform: translate(-0.5px, 1px); }
+                        100% { transform: translate(0, 0); }
+                    }
+                    @keyframes exhaust-puff {
+                        0% { transform: translateY(0) translateX(-50%); opacity: 0; }
+                        50% { opacity: 0.4; }
+                        100% { transform: translateY(20px) translateX(-50%); opacity: 0; }
+                    }
+                    .car-vibrating {
+                        animation: car-vibrate 0.1s linear infinite;
+                    }
+                    .exhaust-anim {
+                        animation: exhaust-puff 0.2s linear infinite;
+                    }
                 `}
             </style>
 
@@ -194,7 +212,7 @@ export function F1RaceTrack({
                 }}
             />
 
-            {showConfetti && <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={500} style={{ zIndex: 60 }} />}
+            {showConfetti && <Confetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={150} style={{ zIndex: 60 }} />}
 
             {/* Header */}
             <div className="relative z-20 flex flex-col sm:flex-row items-center justify-between mb-8 gap-4 px-2">
@@ -295,10 +313,8 @@ export function F1RaceTrack({
 
                                     {/* top heat/smoke effect at bottom */}
                                     {startRace && (
-                                        <motion.div
-                                            animate={{ opacity: [0.1, 0.3, 0.1] }}
-                                            transition={{ duration: 1, repeat: Infinity }}
-                                            className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white/10 to-transparent pointer-events-none"
+                                        <div
+                                            className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white/10 to-transparent pointer-events-none animate-pulse"
                                         />
                                     )}
 
@@ -309,13 +325,7 @@ export function F1RaceTrack({
                                         transition={{ duration: 2.5, ease: "easeOut", delay: index * 0.1 }}
                                         className="absolute left-1/2 -translate-x-1/2 scale-[0.6] sm:scale-100 origin-bottom"
                                     >
-                                        <motion.div
-                                            animate={startRace ? {
-                                                y: [0, -1, 0, 1, 0],
-                                                x: [-0.5, 0.5, -0.5],
-                                            } : {}}
-                                            transition={{ duration: 0.1, repeat: Infinity }}
-                                        >
+                                        <div className={startRace ? 'car-vibrating' : ''}>
                                             <F1CarTopDown
                                                 color={color}
                                                 isLeader={isLeader && startRace}
@@ -324,16 +334,14 @@ export function F1RaceTrack({
 
                                             {/* Speed Exhaust Bubbles/Lines */}
                                             {startRace && (
-                                                <motion.div
-                                                    animate={{ opacity: [0, 0.4, 0], y: [0, 10, 20] }}
-                                                    transition={{ duration: 0.2, repeat: Infinity }}
-                                                    className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1"
+                                                <div
+                                                    className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 exhaust-anim"
                                                 >
                                                     <div className="w-1.5 h-1.5 bg-blue-300/40 rounded-full blur-[1px]" />
                                                     <div className="w-1 h-3 bg-white/20 rounded-full blur-[2px]" />
-                                                </motion.div>
+                                                </div>
                                             )}
-                                        </motion.div>
+                                        </div>
                                     </motion.div>
                                 </div>
                             </div>
