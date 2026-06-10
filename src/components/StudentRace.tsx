@@ -15,7 +15,7 @@ interface StudentRaceProps {
 type ViewMode = 'list' | 'race' | 'podium' | 'snake';
 
 export function StudentRace({ students, jurusanName }: StudentRaceProps) {
-    const [viewMode, setViewMode] = useState<ViewMode>('race');
+    const [viewMode, setViewMode] = useState<ViewMode>('podium');
     const [showAll, setShowAll] = useState(false);
 
     // Sort students for podium/rankings
@@ -42,16 +42,6 @@ export function StudentRace({ students, jurusanName }: StudentRaceProps) {
             {/* View Toggles */}
             <div className="flex justify-center mb-8">
                 <div className="card-glass p-1 rounded-xl sm:rounded-2xl flex flex-wrap sm:flex-nowrap justify-center gap-1 shadow-2xl">
-                    <button
-                        onClick={() => setViewMode('race')}
-                        className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-bold transition-all duration-300 ${viewMode === 'race'
-                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25 ring-1 ring-white/20'
-                            : 'text-gray-500 hover:text-gray-900 hover:bg-black/5 dark:text-white/40 dark:hover:text-white dark:hover:bg-white/5'
-                            }`}
-                    >
-                        <Flag className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span className="hidden xs:inline">Race</span><span className="hidden sm:inline"> Track</span>
-                    </button>
                     <button
                         onClick={() => setViewMode('podium')}
                         className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-bold transition-all duration-300 ${viewMode === 'podium'
@@ -81,6 +71,16 @@ export function StudentRace({ students, jurusanName }: StudentRaceProps) {
                     >
                         <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />
                         <span className="hidden xs:inline">Leaderboard</span>
+                    </button>
+                    <button
+                        onClick={() => setViewMode('race')}
+                        className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-bold transition-all duration-300 ${viewMode === 'race'
+                            ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/25 ring-1 ring-white/20'
+                            : 'text-gray-500 hover:text-gray-900 hover:bg-black/5 dark:text-white/40 dark:hover:text-white dark:hover:bg-white/5'
+                            }`}
+                    >
+                        <Flag className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <span className="hidden xs:inline">Race</span><span className="hidden sm:inline"> Track</span>
                     </button>
                 </div>
             </div>
