@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase, isMockMode } from '../../lib/supabase';
 import mockData from '../../mocks/mockData';
+import { mockUsers } from '../../mocks/mockUsers';
 import { PassportBook } from './PassportBook';
 import type { SiswaWithSkill, LevelSkill } from '../../types';
 import { Loader2, AlertCircle, Home } from 'lucide-react';
@@ -59,7 +60,29 @@ export const PassportPublicView: React.FC<PassportPublicViewProps> = ({ siswaId 
                     evidence_videos: []
                 });
 
-                setWalasName('Sri Wahyuni, S.Pd'); // Mock fallback
+                // Get correct walas name for mock mode
+                if (student.kelas) {
+                    const clean = (c: string) => c.toUpperCase().replace(/\s+/g, ' ').trim();
+                    const sKelas = clean(student.kelas);
+                    const variations = [
+                        sKelas,
+                        sKelas.replace(/(\s)(0[1-3])$/, '$1($2)'),
+                        sKelas.replace(/(\s)\((0[1-3])\)$/, '$1$2')
+                    ].map(clean);
+
+                    const foundWalas = mockUsers.find(u => 
+                        u.role === 'wali_kelas' && 
+                        u.kelas && 
+                        variations.includes(clean(u.kelas))
+                    );
+                    if (foundWalas) {
+                        setWalasName(foundWalas.name);
+                    } else {
+                        setWalasName('Sri Wahyuni, S.Pd');
+                    }
+                } else {
+                    setWalasName('Sri Wahyuni, S.Pd');
+                }
             } else {
                 // Supabase Implementation
                 const { data: student, error: sErr } = await supabase
@@ -118,12 +141,21 @@ export const PassportPublicView: React.FC<PassportPublicViewProps> = ({ siswaId 
 
                 if (hodData) setHodName(hodData.name);
 
-                // Fetch Walas
+                // Fetch Walas with class variations (matching e.g. "XII TKR 5 03" and "XII TKR 5 (03)")
+                const clean = (c: string) => c.toUpperCase().replace(/\s+/g, ' ').trim();
+                const sKelas = clean(student.kelas || '');
+                const classVariations = [
+                    student.kelas,
+                    sKelas,
+                    sKelas.replace(/(\s)(0[1-3])$/, '$1($2)'),
+                    sKelas.replace(/(\s)\((0[1-3])\)$/, '$1$2')
+                ].filter(Boolean);
+
                 const { data: walasData } = await supabase
                     .from('users')
                     .select('name')
                     .in('role', ['wali_kelas', 'teacher_produktif', 'teacher'])
-                    .eq('kelas', student.kelas)
+                    .in('kelas', classVariations)
                     .maybeSingle();
 
                 if (walasData) setWalasName(walasData.name);

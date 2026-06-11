@@ -21,6 +21,7 @@ import { StudentHistoryModal } from './components/StudentHistoryModal';
 import { MissionModal } from './components/MissionModal';
 import { supabase, isMockMode } from './lib/supabase';
 import mockData from './mocks/mockData';
+import { mockUsers } from './mocks/mockUsers';
 import type { StudentStats, CompetencyHistory, LevelSkill } from './types';
 
 function AppContent() {
@@ -148,6 +149,25 @@ function AppContent() {
             siswa_id: student.id
           });
           setMyHistory((mockData as any).mockCompetencyHistory?.filter((r: any) => r.siswa_id === student.id) || []);
+
+          if (student.kelas) {
+            const clean = (c: string) => c.toUpperCase().replace(/\s+/g, ' ').trim();
+            const sKelas = clean(student.kelas);
+            const variations = [
+              sKelas,
+              sKelas.replace(/(\s)(0[1-3])$/, '$1($2)'),
+              sKelas.replace(/(\s)\((0[1-3])\)$/, '$1$2')
+            ].map(clean);
+
+            const foundWalas = mockUsers.find(u => 
+              u.role === 'wali_kelas' && 
+              u.kelas && 
+              variations.includes(clean(u.kelas))
+            );
+            if (foundWalas) {
+              setWalasName(foundWalas.name);
+            }
+          }
         }
       } else {
         const { data: student } = await supabase.from('siswa').select('*, skill_siswa(skor, poin)').eq('id', user.id).maybeSingle();
@@ -186,7 +206,22 @@ function AppContent() {
           // HOD & Walas
           const { data: hodData } = await supabase.from('users').select('name').eq('role', 'hod').eq('jurusan_id', student.jurusan_id).maybeSingle();
           if (hodData) setHodName(hodData.name);
-          const { data: walasData } = await supabase.from('users').select('name').in('role', ['wali_kelas', 'teacher_produktif', 'teacher']).eq('kelas', student.kelas).maybeSingle();
+
+          const clean = (c: string) => c.toUpperCase().replace(/\s+/g, ' ').trim();
+          const sKelas = clean(student.kelas || '');
+          const classVariations = [
+            student.kelas,
+            sKelas,
+            sKelas.replace(/(\s)(0[1-3])$/, '$1($2)'),
+            sKelas.replace(/(\s)\((0[1-3])\)$/, '$1$2')
+          ].filter(Boolean);
+
+          const { data: walasData } = await supabase
+            .from('users')
+            .select('name')
+            .in('role', ['wali_kelas', 'teacher_produktif', 'teacher'])
+            .in('kelas', classVariations)
+            .maybeSingle();
           if (walasData) setWalasName(walasData.name);
         }
       }
