@@ -17,17 +17,17 @@
 }
 
 html.theme-clear {
-  --bg-from: #F8FAFC;
-  --bg-to: #F1F5F9;
+  --bg-from: #FAFBFC;
+  --bg-to: #F5F6F8;
   --accent-1: #f97316;
   /* Orange-500 */
   --accent-2: #ea580c;
   /* Orange-600 */
-  --glass: rgba(15, 23, 42, 0.05);
-  --text-primary: #020617;
-  --text-muted: #475569;
-  --card-bg: rgba(255, 255, 255, 0.7);
-  --card-border: rgba(234, 88, 12, 0.08);
+  --glass: rgba(15, 23, 42, 0.03);
+  --text-primary: #1E293B;
+  --text-muted: #64748B;
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --card-border: rgba(226, 232, 240, 0.8);
 }
 
 .logo-adaptive {
@@ -46,9 +46,14 @@ body,
 
 body {
   @apply text-gray-100 antialiased;
-  background-image: linear-gradient(135deg, var(--bg-from) 0%, var(--bg-to) 60%), linear-gradient(90deg, rgba(249, 115, 22, 0.03), rgba(249, 115, 22, 0.03));
+  background-image: linear-gradient(135deg, var(--bg-from) 0%, var(--bg-to) 60%), linear-gradient(90deg, rgba(249, 115, 22, 0.03), rgba(234, 88, 12, 0.03));
   color: var(--text-primary);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+
+.theme-clear body {
+  background: #FAFBFC;
+  background-image: none;
 }
 
 .card-glass {
@@ -57,8 +62,15 @@ body {
   backdrop-filter: blur(6px);
 }
 
+.theme-clear .card-glass {
+  background: white;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+  backdrop-filter: none;
+}
+
 .accent-outline {
-  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.1), 0 2px 6px rgba(249, 115, 22, 0.05);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.1), 0 2px 6px rgba(234, 88, 12, 0.05);
 }
 
 .muted-text {
@@ -84,14 +96,16 @@ body {
   color: var(--text-primary) !important;
 }
 
-/* Slightly soften buttons and header accents for the light theme */
+/* Fresh, clean header for light theme */
 .theme-clear header {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.5));
-  border-bottom: 1px solid rgba(2, 6, 23, 0.04);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .theme-clear .bg-gradient-to-r\ from-indigo-600\ to-blue-500 {
-  background-image: linear-gradient(90deg, rgba(234, 88, 12, 0.12), rgba(234, 88, 12, 0.12)) !important;
+  background-image: linear-gradient(90deg, rgba(249, 115, 22, 0.08), rgba(234, 88, 12, 0.08)) !important;
 }
 
 /* Make badges and small text align on light theme */

@@ -47,9 +47,11 @@ function AppContent() {
   const prevAuthRef = useRef(isAuthenticated);
   const [themeClear, setThemeClear] = useState<boolean>(() => {
     try {
-      return localStorage.getItem('theme') === 'clear';
+      const saved = localStorage.getItem('theme');
+      // Default to clear (light) theme if no preference saved
+      return saved ? saved === 'clear' : true;
     } catch (e) {
-      return false;
+      return true;
     }
   });
 
