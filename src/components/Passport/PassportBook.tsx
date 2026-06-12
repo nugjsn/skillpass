@@ -70,7 +70,7 @@ export const PassportBook: React.FC<PassportBookProps> = ({ siswa, jurusanName, 
             key="evidence"
             photos={(siswa as any).evidence_photos || []}
             videos={(siswa as any).evidence_videos || []}
-            pageNumber={3}
+            pageNumber={2}
         />, // 3 (Left)
     ];
 
@@ -93,7 +93,7 @@ export const PassportBook: React.FC<PassportBookProps> = ({ siswa, jurusanName, 
                     history={levelHistory}
                     startIndex={i * stampsPerPage}
                     itemsPerPage={stampsPerPage}
-                    pageNumber={pages.length + 1}
+                    pageNumber={pages.length - 1}
                     levels={levels}
                     onStampClick={handleStampClick}
                     title={level.nama_level?.toUpperCase()}
@@ -104,7 +104,7 @@ export const PassportBook: React.FC<PassportBookProps> = ({ siswa, jurusanName, 
 
     // Ensure even number of pages for back cover
     if (pages.length % 2 === 0) {
-        pages.push(<PassportPage key="empty-end" pageNumber={pages.length} />);
+        pages.push(<PassportPage key="empty-end" pageNumber={pages.length - 1} />);
     }
 
     pages.push(<div key="back-cover" className={`w-full h-full bg-[#1a472a] shadow-inner flex items-center justify-center text-[#C5A059]/50 font-serif`}>{siswa.sekolah?.nama_sekolah || "SMK Mitra Industri"}</div>);
