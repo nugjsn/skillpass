@@ -27,6 +27,9 @@ export const JURUSAN_IDS = {
   KIMIA: '550e8400-e29b-41d4-a716-446655440006',
   AKUNTANSI: '550e8400-e29b-41d4-a716-446655440007',
   HOTEL: '550e8400-e29b-41d4-a716-446655440008',
+  MEKATRONIKA: '550e8400-e29b-41d4-a716-446655440009',
+  OTOTRONIK: '550e8400-e29b-41d4-a716-446655440010',
+  ANIMASI: '550e8400-e29b-41d4-a716-446655440011',
 };
 
 export const mockJurusan: Jurusan[] = [
@@ -38,6 +41,9 @@ export const mockJurusan: Jurusan[] = [
   { id: JURUSAN_IDS.KIMIA, nama_jurusan: 'Teknik Kimia Industri', icon: 'FlaskConical', deskripsi: 'Teknologi pengecatan', created_at: new Date().toISOString() },
   { id: JURUSAN_IDS.AKUNTANSI, nama_jurusan: 'Akuntansi', icon: 'Calculator', deskripsi: 'Pencatatan keuangan', created_at: new Date().toISOString() },
   { id: JURUSAN_IDS.HOTEL, nama_jurusan: 'Perhotelan', icon: 'Hotel', deskripsi: 'Layanan & manajemen hotel', created_at: new Date().toISOString() },
+  { id: JURUSAN_IDS.MEKATRONIKA, nama_jurusan: 'Teknik Mekatronika', icon: 'Cpu', deskripsi: 'Sistem mekanik dan elektronika', created_at: new Date().toISOString() },
+  { id: JURUSAN_IDS.OTOTRONIK, nama_jurusan: 'Teknik Ototronik', icon: 'Car', deskripsi: 'Sistem elektronik otomotif', created_at: new Date().toISOString() },
+  { id: JURUSAN_IDS.ANIMASI, nama_jurusan: 'Animasi', icon: 'Film', deskripsi: 'Seni dan teknik animasi', created_at: new Date().toISOString() },
 ];
 
 // Class pools (by jurusan id) — used for generating random 'kelas' values for mock students

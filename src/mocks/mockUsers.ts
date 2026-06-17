@@ -68,6 +68,13 @@ export const mockUsers: User[] = [
     { id: 't-joko-tkr', username: 'joko_tkr', password: '123', name: 'Joko Setyo Nugroho, S.T', role: 'wali_kelas', kelas: 'ALUMNI TKR 3', jurusan_id: JURUSAN_IDS.TKR },
     { id: 'hod-listrik-astri', username: 'hod_listrik', password: '123', name: 'Astri Afmi Wulandari, S.Pd', role: 'hod', jurusan_id: JURUSAN_IDS.LISTRIK },
 
+    // HOD Accounts SMK Mitra Industri 02 Pati
+    { id: 'hod-mekatronika-02', username: 'hod_mekatronika_02', password: '123', name: 'Sukoco, S.Pd', role: 'hod', jurusan_id: JURUSAN_IDS.MEKATRONIKA },
+    { id: 'hod-mesin-02', username: 'hod_mesin_02', password: '123', name: 'Syahrul Gilang R., S.Tr. T', role: 'hod', jurusan_id: JURUSAN_IDS.MESIN },
+    { id: 'hod-animasi-02', username: 'hod_animasi_02', password: '123', name: 'M. Iqbal, S.Pd Gr.', role: 'hod', jurusan_id: JURUSAN_IDS.ANIMASI },
+    { id: 'hod-ototronik-02', username: 'hod_ototronik_02', password: '123', name: 'Gesit Nandaru Aji, S.T', role: 'hod', jurusan_id: JURUSAN_IDS.OTOTRONIK },
+
+
     // Default Teacher Produktif accounts for all majors
     { id: 'p-mesin', username: 'prod_mesin', password: '123', name: 'Guru Produktif Mesin', role: 'teacher_produktif', jurusan_id: JURUSAN_IDS.MESIN },
     { id: 'p-tkr', username: 'prod_tkr', password: '123', name: 'Guru Produktif TKR', role: 'teacher_produktif', jurusan_id: JURUSAN_IDS.TKR },

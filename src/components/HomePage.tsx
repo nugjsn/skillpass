@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase, isMockMode } from '../lib/supabase';
 import mockData from '../mocks/mockData';
 import type { Jurusan, KRSSubmission, StudentStats, LevelSkill } from '../types';
-import { JurusanCard } from './JurusanCard';
+import { JurusanCard, formatJurusanName } from './JurusanCard';
 import { DashboardRace } from './DashboardRace';
 import { useAuth } from '../contexts/AuthContext';
 import { ProfileAvatar } from './ProfileAvatar';
@@ -81,7 +81,6 @@ export function HomePage({
         filteredData = filteredData.filter(j => j.id === user.jurusan_id);
       }
 
-      setJurusanList(filteredData);
       loadPendingKRS();
 
       // Fetch Levels
@@ -170,6 +169,24 @@ export function HomePage({
         }
 
         setTopStudentsMap(map);
+
+        // Deduplicate jurusans based on normalized name, keeping the one with more top students
+        const uniqueJurusans = new Map<string, Jurusan>();
+        filteredData.forEach(j => {
+            const normalized = formatJurusanName(j.nama_jurusan).toLowerCase();
+            const existing = uniqueJurusans.get(normalized);
+            
+            // For teacher/admin, map has keys as j.id. For students, duplicates are highly unlikely since filtered by user.jurusan_id
+            const currentCount = map[j.id]?.length || 0;
+            const existingCount = existing ? (map[existing.id]?.length || 0) : -1;
+            
+            if (!existing || currentCount > existingCount) {
+                uniqueJurusans.set(normalized, j);
+            }
+        });
+        
+        setJurusanList(Array.from(uniqueJurusans.values()));
+
       } catch (e) {
         console.error('Error loading top students:', e);
       }

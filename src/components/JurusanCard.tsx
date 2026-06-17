@@ -8,7 +8,7 @@ interface JurusanCardProps {
   titleOverride?: string;
 }
 
-function formatJurusanName(nama?: string): string {
+export function formatJurusanName(nama?: string): string {
   if (!nama) return '';
   const n = nama.toLowerCase().trim();
 
