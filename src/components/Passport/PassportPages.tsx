@@ -77,6 +77,9 @@ interface IdentityPageProps {
 }
 
 export const PassportIdentityPage: React.FC<IdentityPageProps> = ({ siswa, jurusanName, walasName = "Sri Wahyuni, S.Pd" }) => {
+    const schoolName = siswa.sekolah?.nama_sekolah || import.meta.env.VITE_SCHOOL_NAME || '';
+    const isKampus02 = schoolName.toLowerCase().includes('02 pati');
+
     return (
         <PassportPage pageNumber={1}>
             <div className="px-5 pt-3 pb-2 flex flex-col h-full font-mono text-sm">
@@ -122,12 +125,14 @@ export const PassportIdentityPage: React.FC<IdentityPageProps> = ({ siswa, jurus
                                 {jurusanName}
                             </span>
                         </div>
-                        <div className="hidden sm:block">
-                            <span className="block text-[9px] text-slate-500 uppercase leading-none">Wali Kelas / Homeroom Teacher</span>
-                            <span className="block font-bold text-slate-900 border-b border-dotted border-slate-400 leading-tight mb-0.5 text-xs sm:text-sm">
-                                {walasName}
-                            </span>
-                        </div>
+                        {!isKampus02 && (
+                            <div className="hidden sm:block">
+                                <span className="block text-[9px] text-slate-500 uppercase leading-none">Wali Kelas / Homeroom Teacher</span>
+                                <span className="block font-bold text-slate-900 border-b border-dotted border-slate-400 leading-tight mb-0.5 text-xs sm:text-sm">
+                                    {walasName}
+                                </span>
+                            </div>
+                        )}
                         <div className="flex gap-2">
                             <div className="flex-1">
                                 <span className="block text-[9px] text-slate-500 uppercase leading-none">Kelas / Class</span>
@@ -145,12 +150,14 @@ export const PassportIdentityPage: React.FC<IdentityPageProps> = ({ siswa, jurus
                     </div>
                 </div>
 
-                <div className="sm:hidden mt-1">
-                    <span className="block text-[9px] text-slate-500 uppercase leading-none">Wali Kelas / Homeroom Teacher</span>
-                    <span className="block font-bold text-slate-900 border-b border-dotted border-slate-400 leading-tight text-xs">
-                        {walasName}
-                    </span>
-                </div>
+                {!isKampus02 && (
+                    <div className="sm:hidden mt-1">
+                        <span className="block text-[9px] text-slate-500 uppercase leading-none">Wali Kelas / Homeroom Teacher</span>
+                        <span className="block font-bold text-slate-900 border-b border-dotted border-slate-400 leading-tight text-xs">
+                            {walasName}
+                        </span>
+                    </div>
+                )}
 
                 <div className="mt-auto">
                     <span className="block text-[9px] text-slate-500 uppercase leading-none">Tanda Tangan Pemilik / Signature</span>
