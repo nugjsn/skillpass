@@ -207,22 +207,22 @@ function AppContent() {
           const { data: hodData } = await supabase.from('users').select('name').eq('role', 'hod').eq('jurusan_id', student.jurusan_id).maybeSingle();
           if (hodData) setHodName(hodData.name);
 
-          const clean = (c: string) => c.toUpperCase().replace(/\s+/g, ' ').trim();
-          const sKelas = clean(student.kelas || '');
-          const classVariations = [
-            student.kelas,
-            sKelas,
-            sKelas.replace(/(\s)(0[1-3])$/, '$1($2)'),
-            sKelas.replace(/(\s)\((0[1-3])\)$/, '$1$2')
-          ].filter(Boolean);
+          // Fetch walas with case-insensitive matching
+          const cleanStr = (c: string) => c.toUpperCase().replace(/\s+/g, ' ').trim();
+          const sKelas = cleanStr(student.kelas || '');
 
-          const { data: walasData } = await supabase
+          const { data: allWalasData } = await supabase
             .from('users')
-            .select('name')
+            .select('name, kelas')
             .in('role', ['wali_kelas', 'teacher_produktif', 'teacher'])
-            .in('kelas', classVariations)
-            .maybeSingle();
-          if (walasData) setWalasName(walasData.name);
+            .eq('sekolah_id', student.sekolah_id);
+
+          if (allWalasData && allWalasData.length > 0) {
+            const foundWalas = allWalasData.find((w: any) => 
+              w.kelas && cleanStr(w.kelas) === sKelas
+            );
+            if (foundWalas) setWalasName(foundWalas.name);
+          }
         }
       }
     } catch (e) {

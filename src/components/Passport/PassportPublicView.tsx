@@ -148,24 +148,22 @@ export const PassportPublicView: React.FC<PassportPublicViewProps> = ({ siswaId 
 
                 if (hodData) setHodName(hodData.name);
 
-                // Fetch Walas with class variations (matching e.g. "XII TKR 5 03" and "XII TKR 5 (03)")
-                const clean = (c: string) => c.toUpperCase().replace(/\s+/g, ' ').trim();
-                const sKelas = clean(student.kelas || '');
-                const classVariations = [
-                    student.kelas,
-                    sKelas,
-                    sKelas.replace(/(\s)(0[1-3])$/, '$1($2)'),
-                    sKelas.replace(/(\s)\((0[1-3])\)$/, '$1$2')
-                ].filter(Boolean);
+                // Fetch Walas with case-insensitive matching
+                const cleanStr = (c: string) => c.toUpperCase().replace(/\s+/g, ' ').trim();
+                const sKelas = cleanStr(student.kelas || '');
 
-                const { data: walasData } = await supabase
+                const { data: allWalasData } = await supabase
                     .from('users')
-                    .select('name')
+                    .select('name, kelas')
                     .in('role', ['wali_kelas', 'teacher_produktif', 'teacher'])
-                    .in('kelas', classVariations)
-                    .maybeSingle();
+                    .eq('sekolah_id', student.sekolah_id);
 
-                if (walasData) setWalasName(walasData.name);
+                if (allWalasData && allWalasData.length > 0) {
+                    const foundWalas = allWalasData.find((w: any) =>
+                        w.kelas && cleanStr(w.kelas) === sKelas
+                    );
+                    if (foundWalas) setWalasName(foundWalas.name);
+                }
             }
         } catch (err: any) {
             console.error('Passport Visit Error:', err);
