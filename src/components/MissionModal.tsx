@@ -150,8 +150,8 @@ export function MissionModal({ isOpen, onClose, jurusan, currentScore, currentPo
         if (newKRS.includes(mission)) {
             newKRS = newKRS.filter(m => m !== mission);
         } else {
-            if (newKRS.length >= 10) {
-                alert("Maksimal 10 target kompetensi dalam sekali ambil.");
+            if (newKRS.length >= 2) {
+                alert("Maksimal 2 target kompetensi dalam sekali ambil.");
                 return;
             }
             newKRS.push(mission);
@@ -277,7 +277,7 @@ export function MissionModal({ isOpen, onClose, jurusan, currentScore, currentPo
                                 <div className="p-4 rounded-xl bg-[color:var(--accent-1)]/10 border border-[color:var(--accent-1)]/20 flex gap-3 [.theme-clear_&]:bg-emerald-50 [.theme-clear_&]:border-emerald-200">
                                     <Info className="w-5 h-5 text-[color:var(--accent-1)] shrink-0 mt-0.5" />
                                     <p className="text-sm text-[color:var(--accent-1)] leading-relaxed [.theme-clear_&]:text-emerald-800 font-medium">
-                                        Pilih kriteria kompetensi di <strong>Level Kamu</strong> untuk melanjutkan rencana belajar. ({selectedKRS.length}/10)
+                                        Pilih kriteria kompetensi di <strong>Level Kamu</strong> untuk melanjutkan rencana belajar. ({selectedKRS.length}/2)
                                     </p>
                                 </div>
 
