@@ -52,7 +52,8 @@ export const krsStore = {
 
         const sekolahId = getSekolahId();
         if (sekolahId) {
-            query = query.eq('sekolah_id', sekolahId);
+            // Also include records where sekolah_id is null (submitted before sekolah_id was set)
+            query = query.or(`sekolah_id.eq.${sekolahId},sekolah_id.is.null`);
         }
 
         if (siswaIds && siswaIds.length > 0) {
@@ -145,7 +146,7 @@ export const krsStore = {
             .setHeader('cache-control', 'no-cache');
 
         const sekolahId = getSekolahId();
-        if (sekolahId) query.eq('sekolah_id', sekolahId);
+        if (sekolahId) query.or(`sekolah_id.eq.${sekolahId},sekolah_id.is.null`);
 
         const { data, error } = await query;
 
@@ -252,7 +253,7 @@ export const krsStore = {
                 .order('updated_at', { ascending: false });
 
             const sekolahId = getSekolahId();
-            if (sekolahId) query.eq('sekolah_id', sekolahId);
+            if (sekolahId) query.or(`sekolah_id.eq.${sekolahId},sekolah_id.is.null`);
 
             const { data: all, error } = await query;
 
