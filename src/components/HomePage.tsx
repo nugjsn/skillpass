@@ -240,7 +240,7 @@ export function HomePage({
       if (!statusMatch) return false;
 
       // 2. Department Match
-      if (userRole !== 'admin' && userDeptId && s.jurusan_id !== userDeptId) return false;
+      if (userRole !== 'admin' && userDeptId && s.jurusan_id && s.jurusan_id !== userDeptId) return false;
 
       // 3. Class Match for Anyone looking at their class (especially Walas)
       const studentNormClass = normalizeClass(s.kelas);
