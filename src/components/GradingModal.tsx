@@ -36,9 +36,32 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0 
                 if (isMockMode) {
                     currentLevel = mockData.mockLevels.find(l => initialScore >= l.min_skor && initialScore <= l.max_skor) || mockData.mockLevels[0];
                 } else {
-                    const { data } = await supabase.from('level_skill').select('*').order('urutan');
-                    if (data && data.length > 0) {
-                        currentLevel = data.find(l => initialScore >= l.min_skor && initialScore <= l.max_skor) || data[0];
+                    const [levelsResult, overridesResult] = await Promise.all([
+                        supabase.from('level_skill').select('*').order('urutan', { ascending: true }),
+                        supabase.from('level_skill_jurusan').select('*').eq('jurusan_id', submission.jurusan_id)
+                    ]);
+                    
+                    const levelsData = levelsResult.data || [];
+                    const overrides = overridesResult.data || [];
+                    const levels = levelsData.map((l: any) => {
+                        const ov = overrides.find((o: any) => o.level_id === l.id);
+                        const finalHasilBelajar = ov?.hasil_belajar || l.hasil_belajar;
+                        
+                        let criteria: string[] = [];
+                        try {
+                            if (finalHasilBelajar && finalHasilBelajar.trim().startsWith('[')) {
+                                criteria = JSON.parse(finalHasilBelajar);
+                            } else if (finalHasilBelajar) {
+                                criteria = [finalHasilBelajar];
+                            }
+                        } catch (e) {
+                            criteria = [finalHasilBelajar];
+                        }
+                        return { ...l, criteria };
+                    });
+
+                    if (levels && levels.length > 0) {
+                        currentLevel = levels.find(l => initialScore >= l.min_skor && initialScore <= l.max_skor) || levels[0];
                     }
                 }
 
@@ -49,14 +72,13 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0 
                     const range = Math.max(0, currentLevel.max_skor - min);
                     setLevelRange(range);
 
-                    let totalLvlCriteria = 1;
+                    let totalLvlCriteria = Math.max(1, numTestedCriteria);
                     if (Array.isArray(currentLevel.criteria) && currentLevel.criteria.length > 0) {
                         const levelGroups = groupCriteria(currentLevel.criteria);
-                        totalLvlCriteria = levelGroups.length;
-                    } else if (currentLevel.hasil_belajar) {
-                        totalLvlCriteria = 1;
+                        // Prevent the total from being less than what is submitted, just in case the data is out of sync
+                        totalLvlCriteria = Math.max(levelGroups.length, numTestedCriteria);
                     }
-                    setNumTotalLevelCriteria(Math.max(totalLvlCriteria, 1));
+                    setNumTotalLevelCriteria(totalLvlCriteria);
                 }
             } catch (err) {
                 console.error("Error fetching level for grading", err);
