@@ -756,7 +756,7 @@ export function StudentDetailModal({
                             <td className="px-4 py-3 border-b border-white/5 [.theme-clear_&]:border-slate-100">
                               <span className={`px-2 py-0.5 rounded font-bold text-[10px] ${entry.hasil.toLowerCase() === 'lulus' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>{entry.hasil}</span>
                               {(() => {
-                                const match = entry.catatan?.match(/Nilai: (\d+) \(Grade ([A-E])\)/);
+                                const match = entry.catatan?.match(/Nilai: (\d+) \(Grade ([A-E\+]+)\)/);
                                 if (match) {
                                   return (
                                     <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-black ${getGradeColor(match[2])} uppercase whitespace-nowrap`}>
@@ -768,7 +768,7 @@ export function StudentDetailModal({
                               })()}
                             </td>
                             <td className="px-4 py-3 border-b border-white/5 [.theme-clear_&]:border-slate-100">{entry.tanggal}</td>
-                            <td className="px-4 py-3 border-b border-white/5 [.theme-clear_&]:border-slate-100">{entry.catatan?.replace(/Nilai: \d+ \(Grade [A-E]\)\. /, '') || '-'}</td>
+                            <td className="px-4 py-3 border-b border-white/5 [.theme-clear_&]:border-slate-100">{entry.catatan?.replace(/Nilai: \d+ \(Grade [A-E\+]+\)\. /, '') || '-'}</td>
                             <td className="px-4 py-3 border-b border-white/5 [.theme-clear_&]:border-slate-100 text-right">
                               {entry.hasil.toLowerCase() === 'lulus' && (
                                 <button

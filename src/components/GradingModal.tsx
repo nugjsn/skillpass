@@ -109,8 +109,8 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0 
 
     const getGradeDisplay = (s: number) => {
         if (!s) return { grade: '-', color: 'text-slate-500' };
-        if (s >= 91) return { grade: 'A+', color: 'text-emerald-500' };
-        if (s >= 81) return { grade: 'A', color: 'text-emerald-400' };
+        if (s >= 90) return { grade: 'A+', color: 'text-emerald-500' };
+        if (s >= 80) return { grade: 'A', color: 'text-emerald-400' };
         if (s >= 75) return { grade: 'B', color: 'text-indigo-400' };
         return { grade: 'Gagal', color: 'text-red-500' };
     };

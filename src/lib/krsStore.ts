@@ -521,15 +521,18 @@ export const krsStore = {
         // Current score to compute accumulated score
         let currentScore = 0;
         let currentPoin = 0;
+        let hasSkillSiswa = false;
 
         if (isMockMode) {
             const skillSiswa = mockData.mockSkillSiswa.find(s => s.siswa_id === submission!.siswa_id);
             currentScore = skillSiswa?.skor || 0;
             currentPoin = skillSiswa?.poin || 0;
+            hasSkillSiswa = !!skillSiswa;
         } else {
             const { data: currentSkill } = await supabase.from('skill_siswa').select('skor, poin').eq('siswa_id', submission.siswa_id).maybeSingle();
             currentScore = currentSkill?.skor || 0;
             currentPoin = currentSkill?.poin || 0;
+            hasSkillSiswa = !!currentSkill;
         }
 
         const newTotalScore = currentScore + score;
@@ -551,7 +554,7 @@ export const krsStore = {
                 const dbSiswaId = submission.siswa_id;
 
                 // Update or Insert skill_siswa
-                if (currentSkill) {
+                if (hasSkillSiswa) {
                     await supabase.from('skill_siswa')
                         .update({
                             skor: newTotalScore,
@@ -585,7 +588,7 @@ export const krsStore = {
                 penilai: examinerName || 'Guru Produktif',
                 hasil: result,
                 tanggal: displayDate,
-                catatan: result === 'Lulus' ? `Nilai: ${score} (Grade ${score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 70 ? 'C' : score >= 60 ? 'D' : 'E'}). ${notes || ''}` : notes || ''
+                catatan: result === 'Lulus' ? `Nilai: ${score} (Grade ${score >= 90 ? 'A+' : score >= 80 ? 'A' : 'B'}). ${notes || ''}` : notes || ''
             });
         } else {
             const dbSiswaId = submission.siswa_id;
@@ -608,7 +611,7 @@ export const krsStore = {
                 penilai: examinerName || 'Guru Produktif',
                 hasil: result,
                 tanggal: isoDate,
-                catatan: result === 'Lulus' ? `Nilai: ${score} (Grade ${score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 70 ? 'C' : score >= 60 ? 'D' : 'E'}). ${notes || ''}` : notes || '',
+                catatan: result === 'Lulus' ? `Nilai: ${score} (Grade ${score >= 90 ? 'A+' : score >= 80 ? 'A' : 'B'}). ${notes || ''}` : notes || '',
                 sekolah_id: getSekolahId()
             };
 

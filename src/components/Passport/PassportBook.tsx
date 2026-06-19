@@ -348,7 +348,7 @@ export const PassportBook: React.FC<PassportBookProps> = ({ siswa, jurusanName, 
                                             {selectedCompetency.hasil}
                                         </span>
                                         {(() => {
-                                            const match = selectedCompetency.catatan?.match(/Nilai: (\d+) \(Grade ([A-E])\)/);
+                                            const match = selectedCompetency.catatan?.match(/Nilai: (\d+) \(Grade ([A-E\+]+)\)/);
                                             if (match) {
                                                 return (
                                                     <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-black ${getGradeColor(match[2])} uppercase`}>
@@ -367,7 +367,7 @@ export const PassportBook: React.FC<PassportBookProps> = ({ siswa, jurusanName, 
                                 {selectedCompetency.catatan && (
                                     <div>
                                         <span className="block text-xs text-slate-400 uppercase">Catatan</span>
-                                        <span className="font-medium italic">{selectedCompetency.catatan.replace(/Nilai: \d+ \(Grade [A-E]\)\. /, '')}</span>
+                                        <span className="font-medium italic">{selectedCompetency.catatan.replace(/Nilai: \d+ \(Grade [A-E\+]+\)\. /, '')}</span>
                                     </div>
                                 )}
                             </div>
