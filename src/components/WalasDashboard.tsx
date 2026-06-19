@@ -611,7 +611,7 @@ export function WalasDashboard({ user, onBack }: WalasDashboardProps) {
                                                             {siswa.latest_krs.status === 'pending_produktif' ? 'Review Guru' :
                                                                 siswa.latest_krs.status === 'pending_hod' ? 'Review HOD' :
                                                                     siswa.latest_krs.status === 'scheduled' ? 'Tunggu Ujian' :
-                                                                        siswa.latest_krs.status === 'completed' ? 'Selesai' :
+                                                                        siswa.latest_krs.status === 'completed' ? `Selesai (Nilai: ${siswa.latest_krs.final_score || '-'})` :
                                                                             'Ditolak'}
                                                         </div>
                                                         <div className="text-[9px] text-slate-500 font-medium lowercase italic">Update: {new Date(siswa.latest_krs.updated_at).toLocaleDateString()}</div>
@@ -706,7 +706,7 @@ export function WalasDashboard({ user, onBack }: WalasDashboardProps) {
                                             {siswa.latest_krs.status === 'pending_produktif' ? 'Review Guru' :
                                                 siswa.latest_krs.status === 'pending_hod' ? 'Review HOD' :
                                                     siswa.latest_krs.status === 'scheduled' ? 'Tunggu Ujian' :
-                                                        siswa.latest_krs.status === 'completed' ? 'Selesai' :
+                                                        siswa.latest_krs.status === 'completed' ? `Selesai (Nilai: ${siswa.latest_krs.final_score || '-'})` :
                                                             'Ditolak'}
                                         </div>
                                     </div>

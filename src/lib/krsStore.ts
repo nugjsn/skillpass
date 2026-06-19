@@ -552,19 +552,17 @@ export const krsStore = {
             } else {
                 const dbSiswaId = submission.siswa_id;
 
-                // Update skill_siswa
+                // Upsert skill_siswa (create if not exists)
                 const skillQuery = supabase
                     .from('skill_siswa')
-                    .update({
+                    .upsert({
+                        siswa_id: dbSiswaId,
                         skor: newTotalScore,
                         poin: currentPoin + pointsAwarded,
                         level_id: levelObj.id,
+                        sekolah_id: getSekolahId(),
                         updated_at: now
-                    })
-                    .eq('siswa_id', dbSiswaId);
-
-                const sekolahId = getSekolahId();
-                if (sekolahId) skillQuery.eq('sekolah_id', sekolahId);
+                    }, { onConflict: 'siswa_id' });
 
                 await skillQuery;
             }
