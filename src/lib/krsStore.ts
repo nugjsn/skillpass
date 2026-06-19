@@ -541,13 +541,24 @@ export const krsStore = {
         const levelIdx = mockData.mockLevels.findIndex(l => newTotalScore >= l.min_skor && newTotalScore <= l.max_skor);
         const levelObj = levelIdx >= 0 ? mockData.mockLevels[levelIdx] : mockData.mockLevels[mockData.mockLevels.length - 1];
 
+        let finalLevelId = levelObj.id;
+        if (!isMockMode) {
+            const { data: levelRecord } = await supabase
+                .from('level_skill')
+                .select('id')
+                .gte('max_skor', newTotalScore)
+                .lte('min_skor', newTotalScore)
+                .maybeSingle();
+            if (levelRecord) finalLevelId = levelRecord.id;
+        }
+
         if (result === 'Lulus') {
             if (isMockMode) {
                 const skillIdx = mockData.mockSkillSiswa.findIndex(s => s.siswa_id === submission!.siswa_id);
                 if (skillIdx >= 0) {
                     mockData.mockSkillSiswa[skillIdx].skor = newTotalScore;
                     mockData.mockSkillSiswa[skillIdx].poin += pointsAwarded;
-                    mockData.mockSkillSiswa[skillIdx].level_id = levelObj.id;
+                    mockData.mockSkillSiswa[skillIdx].level_id = finalLevelId;
                     mockData.mockSkillSiswa[skillIdx].updated_at = now;
                 }
             } else {
@@ -559,7 +570,7 @@ export const krsStore = {
                         .update({
                             skor: newTotalScore,
                             poin: currentPoin + pointsAwarded,
-                            level_id: levelObj.id,
+                            level_id: finalLevelId,
                             updated_at: now
                         })
                         .eq('siswa_id', dbSiswaId);
@@ -569,7 +580,7 @@ export const krsStore = {
                             siswa_id: dbSiswaId,
                             skor: newTotalScore,
                             poin: currentPoin + pointsAwarded,
-                            level_id: levelObj.id,
+                            level_id: finalLevelId,
                             sekolah_id: getSekolahId(),
                             updated_at: now
                         });
@@ -592,20 +603,10 @@ export const krsStore = {
             });
         } else {
             const dbSiswaId = submission.siswa_id;
-            
-            // Get DB Level ID for history based on score
-            let dbLevelId = levelObj.id;
-            const { data: levelRecord } = await supabase
-                .from('level_skill')
-                .select('id')
-                .gte('max_skor', newTotalScore)
-                .lte('min_skor', newTotalScore)
-                .maybeSingle();
-            if (levelRecord) dbLevelId = levelRecord.id;
 
             const historyEntry = {
                 siswa_id: dbSiswaId,
-                level_id: dbLevelId,
+                level_id: finalLevelId,
                 unit_kompetensi: (submission.items || []).join(', '),
                 aktivitas_pembuktian: 'Ujian Sertifikasi Terverifikasi',
                 penilai: examinerName || 'Guru Produktif',
