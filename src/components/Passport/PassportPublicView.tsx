@@ -78,10 +78,10 @@ export const PassportPublicView: React.FC<PassportPublicViewProps> = ({ siswaId 
                     if (foundWalas) {
                         setWalasName(foundWalas.name);
                     } else {
-                        setWalasName('Sri Wahyuni, S.Pd');
+                        setWalasName('');
                     }
                 } else {
-                    setWalasName('Sri Wahyuni, S.Pd');
+                    setWalasName('');
                 }
             } else {
                 // Supabase Implementation

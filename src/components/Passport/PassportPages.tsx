@@ -76,7 +76,7 @@ interface IdentityPageProps {
     walasName?: string;
 }
 
-export const PassportIdentityPage: React.FC<IdentityPageProps> = ({ siswa, jurusanName, walasName = "Sri Wahyuni, S.Pd" }) => {
+export const PassportIdentityPage: React.FC<IdentityPageProps> = ({ siswa, jurusanName, walasName = "-" }) => {
     const schoolName = siswa.sekolah?.nama_sekolah || import.meta.env.VITE_SCHOOL_NAME || '';
     const isKampus02 = schoolName.toLowerCase().includes('02 pati');
 

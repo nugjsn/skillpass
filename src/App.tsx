@@ -43,7 +43,7 @@ function AppContent() {
   const [myHistory, setMyHistory] = useState<CompetencyHistory[]>([]);
   const [allLevels, setAllLevels] = useState<LevelSkill[]>([]);
   const [hodName, setHodName] = useState<string | undefined>(undefined);
-  const [walasName, setWalasName] = useState<string>('Sri Wahyuni, S.Pd');
+  const [walasName, setWalasName] = useState<string>('');
   const [jurusanList, setJurusanList] = useState<any[]>([]);
   const prevAuthRef = useRef(isAuthenticated);
   const [themeClear, setThemeClear] = useState<boolean>(() => {
