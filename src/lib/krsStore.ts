@@ -557,7 +557,7 @@ export const krsStore = {
                 const skillIdx = mockData.mockSkillSiswa.findIndex(s => s.siswa_id === submission!.siswa_id);
                 if (skillIdx >= 0) {
                     mockData.mockSkillSiswa[skillIdx].skor = newTotalScore;
-                    mockData.mockSkillSiswa[skillIdx].poin += pointsAwarded;
+                    // poin is strictly for discipline/attitude, not from exams
                     mockData.mockSkillSiswa[skillIdx].level_id = finalLevelId;
                     mockData.mockSkillSiswa[skillIdx].updated_at = now;
                 }
@@ -569,7 +569,7 @@ export const krsStore = {
                     await supabase.from('skill_siswa')
                         .update({
                             skor: newTotalScore,
-                            poin: currentPoin + pointsAwarded,
+                            // poin stays the same, exams only increase XP (skor)
                             level_id: finalLevelId,
                             updated_at: now
                         })
@@ -579,7 +579,7 @@ export const krsStore = {
                         .insert({
                             siswa_id: dbSiswaId,
                             skor: newTotalScore,
-                            poin: currentPoin + pointsAwarded,
+                            poin: currentPoin, // preserve existing or 0
                             level_id: finalLevelId,
                             sekolah_id: getSekolahId(),
                             updated_at: now
