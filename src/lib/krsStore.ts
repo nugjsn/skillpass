@@ -535,7 +535,7 @@ export const krsStore = {
             hasSkillSiswa = !!currentSkill;
         }
 
-        const newTotalScore = currentScore + score;
+        const newTotalScore = currentScore + earnedXP;
         
         // Find level based on the NEW total cumulative score
         const levelIdx = mockData.mockLevels.findIndex(l => newTotalScore >= l.min_skor && newTotalScore <= l.max_skor);
