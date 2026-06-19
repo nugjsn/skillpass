@@ -552,19 +552,27 @@ export const krsStore = {
             } else {
                 const dbSiswaId = submission.siswa_id;
 
-                // Upsert skill_siswa (create if not exists)
-                const skillQuery = supabase
-                    .from('skill_siswa')
-                    .upsert({
-                        siswa_id: dbSiswaId,
-                        skor: newTotalScore,
-                        poin: currentPoin + pointsAwarded,
-                        level_id: levelObj.id,
-                        sekolah_id: getSekolahId(),
-                        updated_at: now
-                    }, { onConflict: 'siswa_id' });
-
-                await skillQuery;
+                // Update or Insert skill_siswa
+                if (currentSkill) {
+                    await supabase.from('skill_siswa')
+                        .update({
+                            skor: newTotalScore,
+                            poin: currentPoin + pointsAwarded,
+                            level_id: levelObj.id,
+                            updated_at: now
+                        })
+                        .eq('siswa_id', dbSiswaId);
+                } else {
+                    await supabase.from('skill_siswa')
+                        .insert({
+                            siswa_id: dbSiswaId,
+                            skor: newTotalScore,
+                            poin: currentPoin + pointsAwarded,
+                            level_id: levelObj.id,
+                            sekolah_id: getSekolahId(),
+                            updated_at: now
+                        });
+                }
             }
         }
 
