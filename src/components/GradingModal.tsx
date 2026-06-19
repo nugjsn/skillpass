@@ -19,13 +19,14 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0 
     const [isSaving, setIsSaving] = useState(false);
     const [levelRange, setLevelRange] = useState<number>(25); // default range
     const [loadingLevel, setLoadingLevel] = useState(true);
+    const [numTotalLevelCriteria, setNumTotalLevelCriteria] = useState<number>(1);
 
     // Get the main criteria items to grade (ignoring sub-items for grading logic)
     const criteriaGroups = useMemo(() => {
         return groupCriteria(submission.items || []);
     }, [submission.items]);
 
-    const numCriteria = criteriaGroups.length || 1;
+    const numTestedCriteria = criteriaGroups.length || 1;
 
     useEffect(() => {
         const fetchLevel = async () => {
@@ -47,6 +48,15 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0 
                     if (currentLevel.urutan > 1) min -= 1; // e.g. 26 to 50 is a range of 25 (50-25)
                     const range = Math.max(0, currentLevel.max_skor - min);
                     setLevelRange(range);
+
+                    let totalLvlCriteria = 1;
+                    if (Array.isArray(currentLevel.criteria) && currentLevel.criteria.length > 0) {
+                        const levelGroups = groupCriteria(currentLevel.criteria);
+                        totalLvlCriteria = levelGroups.length;
+                    } else if (currentLevel.hasil_belajar) {
+                        totalLvlCriteria = 1;
+                    }
+                    setNumTotalLevelCriteria(Math.max(totalLvlCriteria, 1));
                 }
             } catch (err) {
                 console.error("Error fetching level for grading", err);
@@ -67,7 +77,7 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0 
     };
 
     // Calculations
-    const maxXPPerCriterion = levelRange / numCriteria;
+    const maxXPPerCriterion = levelRange / numTotalLevelCriteria;
 
     let totalXP = 0;
     let sumScore = 0;
@@ -80,7 +90,7 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0 
         }
     });
 
-    const averageScore = Math.round(sumScore / numCriteria);
+    const averageScore = Math.round(sumScore / numTestedCriteria);
     // If average is >= 75 and ALL items are >= 75, result is Lulus. 
     // Usually if totalXP > 0 it means at least partially passed. 
     // We'll let the overall result be 'Lulus' if average >= 75 for simplicity, or we can enforce all must be 75.
@@ -88,7 +98,7 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0 
 
     const handleConfirm = async () => {
         // Validate all criteria are filled
-        for (let i = 0; i < numCriteria; i++) {
+        for (let i = 0; i < numTestedCriteria; i++) {
             if (scores[i] === undefined || scores[i] === null) {
                 alert("Harap isi nilai untuk semua kriteria kompetensi!");
                 return;
@@ -139,7 +149,7 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0 
                             <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 flex gap-4 text-sm text-indigo-200">
                                 <Award className="w-8 h-8 text-indigo-400 shrink-0" />
                                 <div>
-                                    <p>Total Max XP Level Ini: <strong>{levelRange} XP</strong>. Dibagi ke {numCriteria} kriteria = <strong>{maxXPPerCriterion.toFixed(1)} XP</strong> per kriteria lulus.</p>
+                                    <p>Total Max XP Level Ini: <strong>{levelRange} XP</strong>. Dibagi ke {numTotalLevelCriteria} kriteria = <strong>{maxXPPerCriterion.toFixed(1)} XP</strong> per kriteria lulus.</p>
                                     <p className="text-xs mt-1 opacity-70">Minimal nilai 75 untuk mendapatkan XP dari kriteria tersebut.</p>
                                 </div>
                             </div>
