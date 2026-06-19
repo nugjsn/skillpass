@@ -515,20 +515,63 @@ export const krsStore = {
             await supabase.from('krs').update(krsUpdates).eq('id', submissionId);
         }
 
-        // 2. Logic for Skill Update
-        const levelIdx = mockData.mockLevels.findIndex(l => score >= l.min_skor && score <= l.max_skor);
-        const levelObj = levelIdx >= 0 ? mockData.mockLevels[levelIdx] : mockData.mockLevels[0];
-        const pointsAwarded = Math.floor(score / 2);
+        // 2. Logic for Skill Update & Points
+        const numItems = submission.items ? submission.items.length : 1;
+        const multiplier = score >= 90 ? 3 : score >= 80 ? 2 : 1;
+        const pointsAwarded = numItems * multiplier;
+
+        // Current score to compute accumulated score
+        let currentScore = 0;
+        let currentPoin = 0;
 
         if (isMockMode) {
-            const skillIdx = mockData.mockSkillSiswa.findIndex(s => s.siswa_id === submission!.siswa_id);
-            if (skillIdx >= 0) {
-                mockData.mockSkillSiswa[skillIdx].skor = score;
-                mockData.mockSkillSiswa[skillIdx].poin += pointsAwarded;
-                mockData.mockSkillSiswa[skillIdx].level_id = levelObj.id;
-                mockData.mockSkillSiswa[skillIdx].updated_at = now;
+            const skillSiswa = mockData.mockSkillSiswa.find(s => s.siswa_id === submission!.siswa_id);
+            currentScore = skillSiswa?.skor || 0;
+            currentPoin = skillSiswa?.poin || 0;
+        } else {
+            const { data: currentSkill } = await supabase.from('skill_siswa').select('skor, poin').eq('siswa_id', submission.siswa_id).maybeSingle();
+            currentScore = currentSkill?.skor || 0;
+            currentPoin = currentSkill?.poin || 0;
+        }
+
+        const newTotalScore = currentScore + score;
+        
+        // Find level based on the NEW total cumulative score
+        const levelIdx = mockData.mockLevels.findIndex(l => newTotalScore >= l.min_skor && newTotalScore <= l.max_skor);
+        const levelObj = levelIdx >= 0 ? mockData.mockLevels[levelIdx] : mockData.mockLevels[mockData.mockLevels.length - 1];
+
+        if (result === 'Lulus') {
+            if (isMockMode) {
+                const skillIdx = mockData.mockSkillSiswa.findIndex(s => s.siswa_id === submission!.siswa_id);
+                if (skillIdx >= 0) {
+                    mockData.mockSkillSiswa[skillIdx].skor = newTotalScore;
+                    mockData.mockSkillSiswa[skillIdx].poin += pointsAwarded;
+                    mockData.mockSkillSiswa[skillIdx].level_id = levelObj.id;
+                    mockData.mockSkillSiswa[skillIdx].updated_at = now;
+                }
+            } else {
+                const dbSiswaId = submission.siswa_id;
+
+                // Update skill_siswa
+                const skillQuery = supabase
+                    .from('skill_siswa')
+                    .update({
+                        skor: newTotalScore,
+                        poin: currentPoin + pointsAwarded,
+                        level_id: levelObj.id,
+                        updated_at: now
+                    })
+                    .eq('siswa_id', dbSiswaId);
+
+                const sekolahId = getSekolahId();
+                if (sekolahId) skillQuery.eq('sekolah_id', sekolahId);
+
+                await skillQuery;
             }
-            // Add history
+        }
+
+        // Add history (both for Lulus and Tidak Lulus)
+        if (isMockMode) {
             mockData.mockCompetencyHistory.push({
                 id: `hist-${Date.now()}`,
                 siswa_id: submission.siswa_id,
@@ -538,53 +581,30 @@ export const krsStore = {
                 penilai: examinerName || 'Guru Produktif',
                 hasil: result,
                 tanggal: displayDate,
-                catatan: notes || ''
+                catatan: result === 'Lulus' ? `Nilai: ${score} (Grade ${score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 70 ? 'C' : score >= 60 ? 'D' : 'E'}). ${notes || ''}` : notes || ''
             });
-
         } else {
             const dbSiswaId = submission.siswa_id;
-
-            // Update skill_siswa
-            const skillQuery = supabase
-                .from('skill_siswa')
-                .update({
-                    skor: score,
-                    level_id: levelObj.id,
-                    updated_at: now
-                })
-                .eq('siswa_id', dbSiswaId);
-
-            const sekolahId = getSekolahId();
-            if (sekolahId) skillQuery.eq('sekolah_id', sekolahId);
-
-            const { error: skillError } = await skillQuery;
-
-            // Update Poin
-            if (!skillError) {
-                const { data: currentSkill } = await supabase.from('skill_siswa').select('poin').eq('siswa_id', dbSiswaId).maybeSingle();
-                const currentPoin = currentSkill?.poin || 0;
-                await supabase.from('skill_siswa').update({ poin: currentPoin + pointsAwarded }).eq('siswa_id', dbSiswaId);
-            }
-
-            // Get DB Level ID
+            
+            // Get DB Level ID for history based on score
             let dbLevelId = levelObj.id;
             const { data: levelRecord } = await supabase
                 .from('level_skill')
                 .select('id')
-                .gte('max_skor', score)
-                .lte('min_skor', score)
+                .gte('max_skor', newTotalScore)
+                .lte('min_skor', newTotalScore)
                 .maybeSingle();
             if (levelRecord) dbLevelId = levelRecord.id;
 
             const historyEntry = {
                 siswa_id: dbSiswaId,
                 level_id: dbLevelId,
-                unit_kompetensi: (submission.items || []).join(', '), // Should be Array validation
+                unit_kompetensi: (submission.items || []).join(', '),
                 aktivitas_pembuktian: 'Ujian Sertifikasi Terverifikasi',
                 penilai: examinerName || 'Guru Produktif',
                 hasil: result,
                 tanggal: isoDate,
-                catatan: notes || '',
+                catatan: result === 'Lulus' ? `Nilai: ${score} (Grade ${score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 70 ? 'C' : score >= 60 ? 'D' : 'E'}). ${notes || ''}` : notes || '',
                 sekolah_id: getSekolahId()
             };
 

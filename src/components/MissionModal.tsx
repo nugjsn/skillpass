@@ -338,32 +338,41 @@ export function MissionModal({ isOpen, onClose, jurusan, currentScore, currentPo
                                                             <div key={groupKey} className="space-y-2">
                                                                 {/* Main Item / Group Header */}
                                                                 <div
-                                                                    onClick={() => {
-                                                                        if (hasSubs) toggleGroup(groupKey);
-                                                                        else if (!passedItems.has(group.main)) toggleKRS(group.main, level.id);
-                                                                    }}
-                                                                    className={`flex items-start justify-between gap-3 p-3.5 rounded-xl border transition-all ${isLocked || passedItems.has(group.main) ? 'cursor-not-allowed bg-white/5 border-white/5 [.theme-clear_&]:bg-slate-100 [.theme-clear_&]:border-slate-200' : 'cursor-pointer group'
+                                                                    className={`flex items-start justify-between gap-3 p-3.5 rounded-xl border transition-all ${isLocked || passedItems.has(group.main) ? 'cursor-not-allowed bg-white/5 border-white/5 [.theme-clear_&]:bg-slate-100 [.theme-clear_&]:border-slate-200' : 'group'
                                                                         } ${isSelected
                                                                             ? 'bg-indigo-500/20 border-indigo-500 shadow-[inset_0_0_10px_rgba(99,102,241,0.2)] [.theme-clear_&]:bg-indigo-50/80'
                                                                             : !isLocked && !passedItems.has(group.main) ? 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20 [.theme-clear_&]:bg-white [.theme-clear_&]:border-slate-200' : ''
                                                                         } ${passedItems.has(group.main) ? 'opacity-80 border-emerald-500/30' : ''}`}
                                                                 >
-                                                                    <div className="flex gap-3">
+                                                                    <div 
+                                                                        className="flex gap-3 flex-1 cursor-pointer"
+                                                                        onClick={() => {
+                                                                            if (!passedItems.has(group.main)) toggleKRS(group.main, level.id);
+                                                                        }}
+                                                                    >
                                                                         <div className="mt-0.5 shrink-0 transition-colors">
-                                                                            {hasSubs ? (
-                                                                                isExpanded ? <ChevronDown className="w-4 h-4 text-indigo-400" /> : <ChevronRight className="w-4 h-4 text-indigo-400/50" />
-                                                                            ) : (
-                                                                                <div className={`p-1 rounded-full border ${passedItems.has(group.main) ? 'bg-emerald-500 border-emerald-500 text-white' : isSelected ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-indigo-500/20 text-indigo-400/50 group-hover:border-indigo-500/50 group-hover:text-indigo-400'}`}>
-                                                                                    {passedItems.has(group.main) ? <Check className="w-3 h-3" /> : isSelected ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                                                                                </div>
-                                                                            )}
+                                                                            <div className={`p-1 rounded-full border ${passedItems.has(group.main) ? 'bg-emerald-500 border-emerald-500 text-white' : isSelected ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-indigo-500/20 text-indigo-400/50 group-hover:border-indigo-500/50 group-hover:text-indigo-400'}`}>
+                                                                                {passedItems.has(group.main) ? <Check className="w-3 h-3" /> : isSelected ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                                                                            </div>
                                                                         </div>
                                                                         <span className={`text-xs sm:text-sm transition-colors ${passedItems.has(group.main) ? 'text-emerald-400 font-bold' : isSelected ? 'text-white font-black [.theme-clear_&]:text-indigo-950' : 'text-gray-400 group-hover:text-gray-200 [.theme-clear_&]:text-slate-600 [.theme-clear_&]:group-hover:text-slate-900'}`}>
                                                                             {renderBold(group.main)}
                                                                             {passedItems.has(group.main) && <span className="ml-2 text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded uppercase align-middle">Lulus</span>}
                                                                         </span>
                                                                     </div>
-                                                                    {hasSubs && <span className="text-[10px] font-black text-indigo-400/40 uppercase mt-1">{group.subs.length} Detail</span>}
+                                                                    
+                                                                    {hasSubs && (
+                                                                        <div 
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                toggleGroup(groupKey);
+                                                                            }}
+                                                                            className="flex flex-col items-end gap-1 cursor-pointer p-1 hover:bg-white/5 rounded shrink-0"
+                                                                        >
+                                                                            <span className="text-[10px] font-black text-indigo-400/40 uppercase mt-1">{group.subs.length} Detail</span>
+                                                                            {isExpanded ? <ChevronDown className="w-4 h-4 text-indigo-400" /> : <ChevronRight className="w-4 h-4 text-indigo-400/50" />}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
 
                                                                 {/* Sub Items */}
@@ -373,28 +382,17 @@ export function MissionModal({ isOpen, onClose, jurusan, currentScore, currentPo
                                                                             initial={{ height: 0, opacity: 0 }}
                                                                             animate={{ height: 'auto', opacity: 1 }}
                                                                             exit={{ height: 0, opacity: 0 }}
-                                                                            className="overflow-hidden space-y-2 ml-4 border-l border-white/5 pl-4"
+                                                                            className="overflow-hidden space-y-2 ml-4 border-l border-white/5 pl-4 mt-2"
                                                                         >
                                                                             {group.subs.map((sub, sIdx) => {
-                                                                                const isSubSelected = selectedKRS.includes(sub);
                                                                                 return (
                                                                                     <div
                                                                                         key={sIdx}
-                                                                                        onClick={() => {
-                                                                                            if (!passedItems.has(sub)) toggleKRS(sub, level.id);
-                                                                                        }}
-                                                                                        className={`flex items-start gap-3 p-3 rounded-xl border transition-all ${isLocked || passedItems.has(sub) ? 'cursor-not-allowed bg-white/5 border-white/5 [.theme-clear_&]:bg-slate-100 [.theme-clear_&]:border-slate-200' : 'cursor-pointer group'
-                                                                                            } ${isSubSelected
-                                                                                                ? 'bg-emerald-500/10 border-emerald-500/50 [.theme-clear_&]:bg-emerald-50 [.theme-clear_&]:border-emerald-300'
-                                                                                                : !isLocked && !passedItems.has(sub) ? 'bg-white/5 border-white/5 hover:bg-white/10 [.theme-clear_&]:bg-white/80 [.theme-clear_&]:border-slate-200' : ''
-                                                                                            } ${passedItems.has(sub) ? 'border-emerald-500/20' : ''}`}
+                                                                                        className={`flex items-start gap-3 p-2 transition-all opacity-80`}
                                                                                     >
-                                                                                        <div className={`mt-0.5 p-1 rounded-full border shrink-0 transition-all ${passedItems.has(sub) ? 'bg-emerald-500 border-emerald-500 text-white' : isSubSelected ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-emerald-500/20 text-emerald-400/50'}`}>
-                                                                                            {passedItems.has(sub) ? <Check className="w-2.5 h-2.5" /> : isSubSelected ? <Check className="w-2.5 h-2.5" /> : <Plus className="w-2.5 h-2.5" />}
-                                                                                        </div>
-                                                                                        <span className={`text-xs transition-colors ${passedItems.has(sub) ? 'text-emerald-400 font-bold' : isSubSelected ? 'text-white font-medium [.theme-clear_&]:text-slate-900' : 'text-gray-400 group-hover:text-gray-200 [.theme-clear_&]:text-slate-500 [.theme-clear_&]:group-hover:text-slate-700'}`}>
+                                                                                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-500/50 shrink-0" />
+                                                                                        <span className={`text-xs text-gray-400 [.theme-clear_&]:text-slate-500`}>
                                                                                             {renderBold(sub, true)}
-                                                                                            {passedItems.has(sub) && <span className="ml-2 text-[9px] bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded uppercase align-middle">Lulus</span>}
                                                                                         </span>
                                                                                     </div>
                                                                                 );

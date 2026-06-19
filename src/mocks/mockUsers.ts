@@ -14,7 +14,7 @@ export interface User {
     sekolah_id?: string;
 }
 
-import { JURUSAN_IDS } from './mockData';
+import mockData, { JURUSAN_IDS } from './mockData';
 
 // Mock users for authentication
 export const mockUsers: User[] = [
@@ -27,6 +27,7 @@ export const mockUsers: User[] = [
     { id: 'u-s6', username: 'siswa_kimia', password: '123', name: 'Siswa Kimia', role: 'student', jurusan_id: JURUSAN_IDS.KIMIA },
     { id: 'u-s7', username: 'siswa_akuntansi', password: '123', name: 'Siswa Akuntansi', role: 'student', jurusan_id: JURUSAN_IDS.AKUNTANSI },
     { id: 'u-s8', username: 'siswa_hotel', password: '123', name: 'Siswa Perhotelan', role: 'student', jurusan_id: JURUSAN_IDS.HOTEL },
+    { id: 'u-s9', username: 'siswa_ototronik', password: '123', name: 'Siswa Ototronik', role: 'student', jurusan_id: JURUSAN_IDS.OTOTRONIK },
 
     // Teacher accounts (one per jurusan)
     { id: 'u-g1', username: 'guru_mesin', password: '123', name: 'Guru Mesin', role: 'teacher', jurusan_id: JURUSAN_IDS.MESIN },
@@ -44,6 +45,7 @@ export const mockUsers: User[] = [
     { id: 'u-g6', username: 'guru_kimia', password: '123', name: 'Guru Kimia', role: 'teacher', jurusan_id: JURUSAN_IDS.KIMIA },
     { id: 'u-g7', username: 'guru_akuntansi', password: '123', name: 'Guru Akuntansi', role: 'teacher', jurusan_id: JURUSAN_IDS.AKUNTANSI },
     { id: 'u-g8', username: 'guru_hotel', password: '123', name: 'Guru Perhotelan', role: 'teacher', jurusan_id: JURUSAN_IDS.HOTEL },
+    { id: 'u-g9', username: 'guru_ototronik', password: '123', name: 'Guru Ototronik', role: 'teacher', jurusan_id: JURUSAN_IDS.OTOTRONIK },
 
     // Admin teacher (can see all)
     { id: 'u-guru', username: 'guru', password: '123', name: 'Guru', role: 'teacher', photo_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop' },
@@ -84,6 +86,7 @@ export const mockUsers: User[] = [
     { id: 'p-kimia', username: 'prod_kimia', password: '123', name: 'Guru Produktif Kimia', role: 'teacher_produktif', jurusan_id: JURUSAN_IDS.KIMIA },
     { id: 'p-akuntansi', username: 'prod_akuntansi', password: '123', name: 'Guru Produktif Akuntansi', role: 'teacher_produktif', jurusan_id: JURUSAN_IDS.AKUNTANSI },
     { id: 'p-hotel', username: 'prod_hotel', password: '123', name: 'Guru Produktif Perhotelan', role: 'teacher_produktif', jurusan_id: JURUSAN_IDS.HOTEL },
+    { id: 'p-ototronik', username: 'prod_ototronik', password: '123', name: 'Guru Produktif Ototronik', role: 'teacher_produktif', jurusan_id: JURUSAN_IDS.OTOTRONIK },
 
     // Consolidated Walas from KAMPUS 01, 02, & 03 (Total 100 Rows)
     // XI CLASSES (naik dari X)
@@ -202,6 +205,29 @@ export function authenticateUser(username: string, password: string, selectedRol
     if (user && selectedRole) {
         if (selectedRole === 'student' && user.role !== 'student') return null;
         if (selectedRole === 'teacher' && user.role === 'student') return null;
+    }
+
+    if (!user && (!selectedRole || selectedRole === 'student')) {
+        const student = mockData.mockSiswa.find((s: any) => {
+            const isUsernameMatch = s.nisn === username || s.nama === username;
+            const isPasswordMatch = s.nisn === password;
+            return isUsernameMatch && isPasswordMatch && !!s.nisn;
+        });
+
+        if (student) {
+            return {
+                id: student.id,
+                username: student.nisn || student.nama,
+                password: student.nisn || '',
+                name: student.nama,
+                role: 'student',
+                jurusan_id: student.jurusan_id,
+                kelas: student.kelas,
+                nisn: student.nisn,
+                avatar_url: student.avatar_url,
+                photo_url: student.photo_url
+            } as User;
+        }
     }
 
     return user || null;

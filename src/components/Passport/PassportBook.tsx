@@ -5,6 +5,7 @@ import { PassportCover, PassportIdentityPage, PassportStampsPage, PassportPage, 
 import { PASSPORT_DIMENSIONS } from './PassportStyles';
 import type { SiswaWithSkill, LevelSkill, CompetencyHistory } from '../../types';
 import { generateCertificate } from '../../lib/certificateGenerator';
+import { getGradeColor } from '../../lib/gradingHelper';
 
 interface PassportBookProps {
     siswa: SiswaWithSkill;
@@ -346,6 +347,17 @@ export const PassportBook: React.FC<PassportBookProps> = ({ siswa, jurusanName, 
                                         <span className={`font-bold ${selectedCompetency.hasil.toLowerCase() === 'lulus' ? 'text-emerald-600' : 'text-red-600'}`}>
                                             {selectedCompetency.hasil}
                                         </span>
+                                        {(() => {
+                                            const match = selectedCompetency.catatan?.match(/Nilai: (\d+) \(Grade ([A-E])\)/);
+                                            if (match) {
+                                                return (
+                                                    <span className={`ml-2 px-1.5 py-0.5 rounded text-[10px] font-black ${getGradeColor(match[2])} uppercase`}>
+                                                        Grade {match[2]} - {match[1]}
+                                                    </span>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
                                     </div>
                                 </div>
                                 <div>
@@ -355,7 +367,7 @@ export const PassportBook: React.FC<PassportBookProps> = ({ siswa, jurusanName, 
                                 {selectedCompetency.catatan && (
                                     <div>
                                         <span className="block text-xs text-slate-400 uppercase">Catatan</span>
-                                        <span className="font-medium italic">{selectedCompetency.catatan}</span>
+                                        <span className="font-medium italic">{selectedCompetency.catatan.replace(/Nilai: \d+ \(Grade [A-E]\)\. /, '')}</span>
                                     </div>
                                 )}
                             </div>

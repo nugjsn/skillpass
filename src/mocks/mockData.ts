@@ -56,6 +56,7 @@ const classPools: Record<string, string[]> = {
   [JURUSAN_IDS.KIMIA]: [...Array.from({ length: 2 }, (_, i) => `X TKI ${i + 1}`), ...Array.from({ length: 2 }, (_, i) => `XI TKI ${i + 1}`), ...Array.from({ length: 2 }, (_, i) => `XII TKI ${i + 1}`)],
   [JURUSAN_IDS.AKUNTANSI]: [...Array.from({ length: 2 }, (_, i) => `X AK ${i + 1}`), ...Array.from({ length: 2 }, (_, i) => `XI AK ${i + 1}`), ...Array.from({ length: 2 }, (_, i) => `XII AK ${i + 1}`), 'X AKUNTANSI 03', 'XI AKUNTANSI 4 03', 'XII AKUNTANSI 4 03'],
   [JURUSAN_IDS.HOTEL]: [...Array.from({ length: 2 }, (_, i) => `X HOTEL ${i + 1}`), ...Array.from({ length: 2 }, (_, i) => `XI HOTEL ${i + 1}`), 'XII HOTEL 1'],
+  [JURUSAN_IDS.OTOTRONIK]: [...Array.from({ length: 2 }, (_, i) => `X OTOTRONIK ${i + 1}`), ...Array.from({ length: 2 }, (_, i) => `XI OTOTRONIK ${i + 1}`), 'XII OTOTRONIK 1'],
 };
 
 function pickRandom<T>(arr: T[]) {
@@ -108,6 +109,11 @@ export const mockSiswa: Siswa[] = [
   { id: 's-j8-b', nama: 'Mita Sari', kelas: klassFor(JURUSAN_IDS.HOTEL), jurusan_id: JURUSAN_IDS.HOTEL, created_at: new Date().toISOString() },
   { id: 's-j8-c', nama: 'Fajar Prakoso', kelas: klassFor(JURUSAN_IDS.HOTEL), jurusan_id: JURUSAN_IDS.HOTEL, created_at: new Date().toISOString() },
   { id: 's-j8-d', nama: 'Rani Melinda', kelas: klassFor(JURUSAN_IDS.HOTEL), jurusan_id: JURUSAN_IDS.HOTEL, created_at: new Date().toISOString() },
+
+  { id: 's-j9-a', nama: 'Bima Sakti', kelas: klassFor(JURUSAN_IDS.OTOTRONIK), jurusan_id: JURUSAN_IDS.OTOTRONIK, created_at: new Date().toISOString() },
+  { id: 's-j9-b', nama: 'Dimas Anugrah', kelas: klassFor(JURUSAN_IDS.OTOTRONIK), jurusan_id: JURUSAN_IDS.OTOTRONIK, created_at: new Date().toISOString() },
+  { id: 's-j9-c', nama: 'Eka Saputra', kelas: klassFor(JURUSAN_IDS.OTOTRONIK), jurusan_id: JURUSAN_IDS.OTOTRONIK, created_at: new Date().toISOString() },
+  { id: 's-j9-d', nama: 'Riska Wahyuni', kelas: klassFor(JURUSAN_IDS.OTOTRONIK), jurusan_id: JURUSAN_IDS.OTOTRONIK, created_at: new Date().toISOString() },
   // --- This matches the username 'siswa_mesin' with name 'Siswa Mesin' in mockUsers.ts ---
   { id: 's-j1-user', nama: 'Siswa Mesin', kelas: 'XII MESIN 1', jurusan_id: JURUSAN_IDS.MESIN, nisn: '12345', wa_number: '628123456789', created_at: new Date().toISOString(), avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix', photo_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&h=400&fit=crop' },
   // --- Hero students for other majors ---
@@ -118,6 +124,7 @@ export const mockSiswa: Siswa[] = [
   { id: 's-j6-user', nama: 'Siswa Kimia', kelas: 'XII TKI 1', jurusan_id: JURUSAN_IDS.KIMIA, nisn: '62345', wa_number: '628123456794', created_at: new Date().toISOString() },
   { id: 's-j7-user', nama: 'Siswa Akuntansi', kelas: 'XII AK 1', jurusan_id: JURUSAN_IDS.AKUNTANSI, nisn: '72345', wa_number: '628123456795', created_at: new Date().toISOString() },
   { id: 's-j8-user', nama: 'Siswa Perhotelan', kelas: 'XII HOTEL 1', jurusan_id: JURUSAN_IDS.HOTEL, nisn: '82345', wa_number: '628123456796', created_at: new Date().toISOString() },
+  { id: 's-j9-user', nama: 'Siswa Ototronik', kelas: 'X OTOTRONIK 1', jurusan_id: JURUSAN_IDS.OTOTRONIK, nisn: '92345', wa_number: '628123456797', created_at: new Date().toISOString() },
   // --- New Student for 'siswa' login ---
   { id: 's-raka-new', nama: 'Raka Aditya', kelas: 'XII TKR 1', jurusan_id: JURUSAN_IDS.MESIN, nisn: '0012345678', wa_number: '628123456797', created_at: new Date().toISOString(), avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Raka', photo_url: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop' },
   { id: 's-bayu-sapta', nama: 'Bayu Sapta', kelas: 'XII TKR 3', jurusan_id: JURUSAN_IDS.TKR, nisn: '0083581133', created_at: new Date().toISOString(), avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bayu', photo_url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&h=400&fit=crop' },
@@ -162,6 +169,7 @@ export const mockSkillSiswa: SkillSiswa[] = [
   { id: 'ss-siswa-kimia', siswa_id: 's-j6-user', level_id: 'lvl-adv', skor: 70, poin: 200, tanggal_pencapaian: new Date().toISOString(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
   { id: 'ss-siswa-akuntansi', siswa_id: 's-j7-user', level_id: 'lvl-master', skor: 91, poin: 250, tanggal_pencapaian: new Date().toISOString(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
   { id: 'ss-siswa-hotel', siswa_id: 's-j8-user', level_id: 'lvl-inter', skor: 60, poin: 150, tanggal_pencapaian: new Date().toISOString(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+  { id: 'ss-siswa-ototronik', siswa_id: 's-j9-user', level_id: 'lvl-basic1', skor: 10, poin: 50, tanggal_pencapaian: new Date().toISOString(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
   // skill for Raka Aditya
   { id: 'ss-raka-new', siswa_id: 's-raka-new', level_id: 'lvl-adv', skor: 85, poin: 200, tanggal_pencapaian: new Date().toISOString(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
 ];
