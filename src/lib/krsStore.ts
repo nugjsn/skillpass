@@ -472,7 +472,7 @@ export const krsStore = {
         return true;
     },
 
-    async completeKRS(submissionId: string, score: number, result: 'Lulus' | 'Tidak Lulus', notes?: string, examinerName?: string): Promise<boolean> {
+    async completeKRS(submissionId: string, score: number, earnedXP: number, result: 'Lulus' | 'Tidak Lulus', notes?: string, examinerName?: string): Promise<boolean> {
         let submission: KRSSubmission | undefined;
         // Fetch fresh data
         if (isMockMode) {
@@ -516,9 +516,7 @@ export const krsStore = {
         }
 
         // 2. Logic for Skill Update & Points
-        const numItems = submission.items ? submission.items.length : 1;
-        const multiplier = score >= 90 ? 3 : score >= 80 ? 2 : 1;
-        const pointsAwarded = numItems * multiplier;
+        const pointsAwarded = earnedXP;
 
         // Current score to compute accumulated score
         let currentScore = 0;
