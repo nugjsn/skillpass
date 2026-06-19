@@ -215,7 +215,7 @@ function AppContent() {
             .from('users')
             .select('name, kelas')
             .in('role', ['wali_kelas', 'teacher_produktif', 'teacher'])
-            .eq('sekolah_id', student.sekolah_id);
+            .eq('jurusan_id', student.jurusan_id);
 
           if (allWalasData && allWalasData.length > 0) {
             const foundWalas = allWalasData.find((w: any) => 
