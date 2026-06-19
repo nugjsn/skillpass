@@ -119,4 +119,35 @@ VALUES
 
     ('walas_arya_xii_tsm4_03', '123', 'Arya Yudha Satriatama, S.Pd', 'wali_kelas', 'XII TSM 4 (03)', '550e8400-e29b-41d4-a716-446655440003'),
     ('walas_arya_xii_tsm5_03', '123', 'Arya Yudha Satriatama, S.Pd', 'wali_kelas', 'XII TSM 5 (03)', '550e8400-e29b-41d4-a716-446655440003'),
-    ('walas_heri_xii_tsm6_03', '123', 'Heri Supriyanto', 'wali_kelas', 'XII TSM 6 (03)', '550e8400-e29b-41d4-a716-446655440003');
+    ('walas_heri_xii_tsm6_03', '123', 'Heri Supriyanto', 'wali_kelas', 'XII TSM 6 (03)', '550e8400-e29b-41d4-a716-446655440003'),
+
+    -- ==========================================
+    -- KAMPUS 02 PATI
+    -- ==========================================
+
+    -- X CLASSES (Kampus 02)
+    ('walas_wasful_x_meka1_02', '123', 'Wasful Aulia', 'wali_kelas', 'X MEKA 1', '550e8400-e29b-41d4-a716-446655440009'),
+    ('walas_sukoco_x_meka2_02', '123', 'Sukoco', 'wali_kelas', 'X MEKA 2', '550e8400-e29b-41d4-a716-446655440009'),
+    ('walas_trisa_x_meka3_02', '123', 'Trisa Mariyani', 'wali_kelas', 'X MEKA 3', '550e8400-e29b-41d4-a716-446655440009'),
+    ('walas_ilham_x_mesin1_02', '123', 'Ilham Agum F. Anggesa', 'wali_kelas', 'X MESIN 1', '550e8400-e29b-41d4-a716-446655440001'),
+    ('walas_aprilia_x_mesin2_02', '123', 'Aprilia Nimah Akasah', 'wali_kelas', 'X MESIN 2', '550e8400-e29b-41d4-a716-446655440001'),
+    ('walas_gesit_x_oto1_02', '123', 'Gesit Nandaru Aji', 'wali_kelas', 'X OTO 1', '550e8400-e29b-41d4-a716-446655440010'),
+    ('walas_amirudin_x_oto2_02', '123', 'Amirudin Fatah', 'wali_kelas', 'X OTO 2', '550e8400-e29b-41d4-a716-446655440010'),
+    ('walas_yusuf_x_anim1_02', '123', 'Yusuf Wahyu Putra P', 'wali_kelas', 'X ANIM 1', '550e8400-e29b-41d4-a716-446655440011'),
+    ('walas_erika_x_anim2_02', '123', 'Erika Chairun Nissa', 'wali_kelas', 'X ANIM 2', '550e8400-e29b-41d4-a716-446655440011'),
+
+    -- XI CLASSES (Kampus 02)
+    ('walas_tripuji_xi_meka1_02', '123', 'Tri Puji Lestari', 'wali_kelas', 'XI MEKA 1', '550e8400-e29b-41d4-a716-446655440009'),
+    ('walas_aimfathilah_xi_meka2_02', '123', 'Aimfathilah S', 'wali_kelas', 'XI MEKA 2', '550e8400-e29b-41d4-a716-446655440009'),
+    ('walas_ilham_xi_mesin1_02', '123', 'Ilham Agum F. Anggesa', 'wali_kelas', 'XI MESIN 1', '550e8400-e29b-41d4-a716-446655440001'),
+    ('walas_gani_xi_mesin2_02', '123', 'Gani Mubyarto', 'wali_kelas', 'XI MESIN 2', '550e8400-e29b-41d4-a716-446655440001'),
+    ('walas_ahmad_xi_oto_02', '123', 'Ahmad August Jisa P', 'wali_kelas', 'XI OTO', '550e8400-e29b-41d4-a716-446655440010'),
+    ('walas_trisa_xi_animasi_02', '123', 'Trisa Mariyani', 'wali_kelas', 'XI ANIMASI', '550e8400-e29b-41d4-a716-446655440011'),
+
+    -- XII CLASSES (Kampus 02)
+    ('walas_sukoco_xii_meka_02', '123', 'Sukoco', 'wali_kelas', 'XII MEKA', '550e8400-e29b-41d4-a716-446655440009'),
+    ('walas_syahrul_xii_mesin1_02', '123', 'Syahrul Gilang Ramdhan', 'wali_kelas', 'XII MESIN 1', '550e8400-e29b-41d4-a716-446655440001'),
+    ('walas_fathur_xii_mesin2_02', '123', 'Moh. Fathurrohman', 'wali_kelas', 'XII MESIN 2', '550e8400-e29b-41d4-a716-446655440001'),
+    ('walas_sahroni_xii_oto_02', '123', 'Muhammad Sahroni', 'wali_kelas', 'XII OTO', '550e8400-e29b-41d4-a716-446655440010'),
+    ('walas_dhita_xii_anim1_02', '123', 'Dhita Ayu S', 'wali_kelas', 'XII ANIM 1', '550e8400-e29b-41d4-a716-446655440011'),
+    ('walas_tripuji_xii_anim2_02', '123', 'Tri Puji Lestari', 'wali_kelas', 'XII ANIM 2', '550e8400-e29b-41d4-a716-446655440011');
