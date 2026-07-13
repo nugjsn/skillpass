@@ -51,9 +51,45 @@ export function ImportStudents({ jurusanId, onClose, onImported }: ImportStudent
       let allParsed: ParsedRow[] = [];
       wb.SheetNames.forEach(name => {
         const sheet = wb.Sheets[name];
-        const jsonData = XLSX.utils.sheet_to_json(sheet);
-        const parsed = jsonData.map(normalizeRow).filter((r): r is ParsedRow => r !== null);
-        allParsed = [...allParsed, ...parsed];
+        const aoa = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1 });
+        
+        let headerRowIndex = -1;
+        for (let i = 0; i < aoa.length; i++) {
+          const row = aoa[i];
+          if (Array.isArray(row)) {
+            const hasNama = row.some(cell => typeof cell === 'string' && cell.toLowerCase().includes('nama'));
+            if (hasNama) {
+              headerRowIndex = i;
+              break;
+            }
+          }
+        }
+
+        if (headerRowIndex !== -1) {
+          const headers = aoa[headerRowIndex].map(h => String(h || '').toLowerCase().trim());
+          const nameIdx = headers.findIndex(h => h.includes('nama'));
+          const nisnIdx = headers.findIndex(h => h.includes('nisn') || h.includes('induk'));
+          const classIdx = headers.findIndex(h => h.includes('kelas') || h.includes('class'));
+          const scoreIdx = headers.findIndex(h => h.includes('skor') || h.includes('nilai') || h.includes('score'));
+
+          for (let i = headerRowIndex + 1; i < aoa.length; i++) {
+            const row = aoa[i];
+            if (!Array.isArray(row) || row.length === 0) continue;
+            
+            const nama = row[nameIdx] ? String(row[nameIdx]).trim() : '';
+            if (!nama) continue;
+
+            const skorVal = row[scoreIdx];
+            const skorNum = (skorVal !== undefined && skorVal !== '' && skorVal !== '-') ? Number(skorVal) : undefined;
+
+            allParsed.push({
+              nama,
+              nisn: nisnIdx !== -1 && row[nisnIdx] ? String(row[nisnIdx]).trim() : undefined,
+              kelas: classIdx !== -1 && row[classIdx] ? String(row[classIdx]).trim() : undefined,
+              skor: !isNaN(Number(skorNum)) ? skorNum : undefined
+            });
+          }
+        }
       });
 
       if (allParsed.length === 0) {
@@ -72,15 +108,70 @@ export function ImportStudents({ jurusanId, onClose, onImported }: ImportStudent
     try {
       const wb = XLSX.read(text, { type: 'string' });
       const mainSheet = wb.Sheets[wb.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(mainSheet);
-      const parsed = jsonData.map(normalizeRow).filter((r): r is ParsedRow => r !== null);
-      if (parsed.length === 0 && text.trim().length > 0) {
-        // Fallback for simple CSV without headers if XLSX failed to pick it up?
-        // XLSX assumes headers by default. If pasted text is "Budi, X 1, 90" without header, it uses first row as header.
-        // Fix: assume headerless if keys look like '__EMPTY' ??
-        // Better: Provide example "Nama,Kelas,Skor" to user so they include headers.
+      const aoa = XLSX.utils.sheet_to_json<any[]>(mainSheet, { header: 1 });
+      
+      let allParsed: ParsedRow[] = [];
+      let headerRowIndex = -1;
+      
+      for (let i = 0; i < aoa.length; i++) {
+        const row = aoa[i];
+        if (Array.isArray(row)) {
+          const hasNama = row.some(cell => typeof cell === 'string' && cell.toLowerCase().includes('nama'));
+          if (hasNama) {
+            headerRowIndex = i;
+            break;
+          }
+        }
       }
-      setPreview(parsed);
+
+      if (headerRowIndex !== -1) {
+        const headers = aoa[headerRowIndex].map(h => String(h || '').toLowerCase().trim());
+        const nameIdx = headers.findIndex(h => h.includes('nama'));
+        const nisnIdx = headers.findIndex(h => h.includes('nisn') || h.includes('induk'));
+        const classIdx = headers.findIndex(h => h.includes('kelas') || h.includes('class'));
+        const scoreIdx = headers.findIndex(h => h.includes('skor') || h.includes('nilai') || h.includes('score'));
+
+        for (let i = headerRowIndex + 1; i < aoa.length; i++) {
+          const row = aoa[i];
+          if (!Array.isArray(row) || row.length === 0) continue;
+          
+          const nama = row[nameIdx] ? String(row[nameIdx]).trim() : '';
+          if (!nama) continue;
+
+          const skorVal = row[scoreIdx];
+          const skorNum = (skorVal !== undefined && skorVal !== '' && skorVal !== '-') ? Number(skorVal) : undefined;
+
+          allParsed.push({
+            nama,
+            nisn: nisnIdx !== -1 && row[nisnIdx] ? String(row[nisnIdx]).trim() : undefined,
+            kelas: classIdx !== -1 && row[classIdx] ? String(row[classIdx]).trim() : undefined,
+            skor: !isNaN(Number(skorNum)) ? skorNum : undefined
+          });
+        }
+      } else {
+        // Fallback for paste: assume first row is data if no headers found
+        if (text.trim().length > 0 && aoa.length > 0) {
+          for (let i = 0; i < aoa.length; i++) {
+            const row = aoa[i];
+            if (!Array.isArray(row) || row.length === 0) continue;
+            
+            const nama = row[0] ? String(row[0]).trim() : '';
+            if (!nama) continue;
+            
+            const skorVal = row[3];
+            const skorNum = (skorVal !== undefined && skorVal !== '' && skorVal !== '-') ? Number(skorVal) : undefined;
+
+            allParsed.push({
+              nama,
+              nisn: row[1] ? String(row[1]).trim() : undefined,
+              kelas: row[2] ? String(row[2]).trim() : undefined,
+              skor: !isNaN(Number(skorNum)) ? skorNum : undefined
+            });
+          }
+        }
+      }
+      
+      setPreview(allParsed);
     } catch (err) {
       // ignore empty
     }
