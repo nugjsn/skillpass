@@ -23,6 +23,7 @@ interface HomePageProps {
   onOpenSkillCard?: () => void;
   onOpenPassport?: () => void;
   onOpenMissionModal?: () => void;
+  onOpenNilaiInfo?: () => void;
   myStats?: StudentStats | null;
   allLevels?: LevelSkill[];
   onUpdateStats?: () => Promise<void>;
@@ -37,6 +38,7 @@ export function HomePage({
   onOpenSkillCard,
   onOpenPassport,
   onOpenMissionModal,
+  onOpenNilaiInfo,
   myStats: propsMyStats,
   allLevels,
   onUpdateStats
@@ -570,11 +572,11 @@ export function HomePage({
                     desc: 'Ujian sertifikasi Anda telah selesai dan diverifikasi. Terus tingkatkan skor Anda untuk mencapai level berikutnya!',
                     action: (
                       <button
-                        onClick={() => onOpenMissionModal?.()}
+                        onClick={() => onOpenNilaiInfo?.()}
                         className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 rounded-lg border border-emerald-500/20 text-emerald-300 [.theme-clear_&]:text-emerald-700 font-bold text-[10px] transition-all"
                       >
-                        <Plus className="w-3 h-3" />
-                        Upgrade Skill Lagi
+                        <BookOpen className="w-3 h-3" />
+                        Lihat Nilainya
                       </button>
                     )
                   },

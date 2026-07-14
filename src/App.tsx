@@ -19,6 +19,7 @@ import { GuideModal } from './components/GuideModal';
 import { SkillCard } from './components/SkillCard';
 import { StudentHistoryModal } from './components/StudentHistoryModal';
 import { MissionModal } from './components/MissionModal';
+import { NilaiInfoModal } from './components/NilaiInfoModal';
 import { supabase, isMockMode } from './lib/supabase';
 import mockData from './mocks/mockData';
 import { mockUsers } from './mocks/mockUsers';
@@ -36,6 +37,7 @@ function AppContent() {
   const [showSkillCard, setShowSkillCard] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showMissionModal, setShowMissionModal] = useState(false);
+  const [showNilaiInfoModal, setShowNilaiInfoModal] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
 
   // Student Data States
@@ -335,6 +337,7 @@ function AppContent() {
             onOpenSkillCard={() => setShowSkillCard(true)}
             onOpenPassport={() => setShowHistoryModal(true)}
             onOpenMissionModal={() => setShowMissionModal(true)}
+            onOpenNilaiInfo={() => setShowNilaiInfoModal(true)}
             myStats={myStats}
             allLevels={allLevels}
             onUpdateStats={loadStudentData}
@@ -405,6 +408,16 @@ function AppContent() {
           currentScore={myStats.score}
           currentPoin={myStats.poin}
           siswaId={myStats?.siswa_id || user.id}
+        />
+      )}
+
+      {showNilaiInfoModal && user && (
+        <NilaiInfoModal
+          isOpen={showNilaiInfoModal}
+          onClose={() => setShowNilaiInfoModal(false)}
+          history={myHistory}
+          levels={allLevels}
+          studentName={user.name}
         />
       )}
 
