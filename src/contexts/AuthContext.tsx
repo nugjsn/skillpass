@@ -70,36 +70,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 }
             }
 
-            // For teachers/HODs/Admins in production, use the 'users' table
-            const { data: staff, error: staffError } = await supabase
-                .from('users')
-                .select('*')
-                .eq('username', username)
-                .eq('password', password)
-                .select('*, sekolah(nama_sekolah)')
-                .maybeSingle();
+            if (role === 'teacher' || !role) {
+                // For teachers/HODs/Admins in production, use the 'users' table
+                const { data: staff, error: staffError } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('username', username)
+                    .eq('password', password)
+                    .select('*, sekolah(nama_sekolah)')
+                    .maybeSingle();
 
-            const staffData = staff as any;
+                const staffData = staff as any;
 
-            if (staff && !staffError) {
-                const authenticatedUser: User = {
-                    id: staff.id,
-                    username: staff.username,
-                    password: staff.password,
-                    name: staff.name,
-                    role: staff.role as any,
-                    jurusan_id: staff.jurusan_id,
-                    kelas: staff.kelas,
-                    avatar_url: staffData.avatar_url,
-                    photo_url: staffData.photo_url,
-                    sekolah_id: staffData.sekolah_id,
-                    sekolah_nama: staffData.sekolah?.nama_sekolah
-                };
-                setUser(authenticatedUser);
-                localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authenticatedUser));
-                // Dispatch auth change event so other components can reload data
-                window.dispatchEvent(new CustomEvent('auth-changed', { detail: { action: 'login', user: authenticatedUser } }));
-                return true;
+                if (staff && !staffError) {
+                    const authenticatedUser: User = {
+                        id: staff.id,
+                        username: staff.username,
+                        password: staff.password,
+                        name: staff.name,
+                        role: staff.role as any,
+                        jurusan_id: staff.jurusan_id,
+                        kelas: staff.kelas,
+                        avatar_url: staffData.avatar_url,
+                        photo_url: staffData.photo_url,
+                        sekolah_id: staffData.sekolah_id,
+                        sekolah_nama: staffData.sekolah?.nama_sekolah
+                    };
+                    setUser(authenticatedUser);
+                    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authenticatedUser));
+                    // Dispatch auth change event so other components can reload data
+                    window.dispatchEvent(new CustomEvent('auth-changed', { detail: { action: 'login', user: authenticatedUser } }));
+                    return true;
+                }
             }
         }
 
