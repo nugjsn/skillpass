@@ -54,7 +54,6 @@ export function WalasDashboard({ user, onBack }: WalasDashboardProps) {
             .replace(/TKI/g, 'KIMIA')
             .replace(/BIKE/g, 'TSM')
             .replace(/MESIN/g, 'MES')
-            .replace(/\s0[123]$/, '') // Strip trailing campus suffixes (01, 02, 03)
             .replace(/\s+/g, ' ')
             .trim();
     };
