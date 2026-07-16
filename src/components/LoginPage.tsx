@@ -124,7 +124,12 @@ export function LoginPage() {
                     <div className="grid grid-cols-2 gap-4 mb-8">
                         <button
                             type="button"
-                            onClick={() => setSelectedRole('student')}
+                            onClick={() => {
+                                setSelectedRole('student');
+                                setUsername('');
+                                setPassword('');
+                                setError('');
+                            }}
                             className={`p-4 rounded-2xl border transition-all duration-300 relative overflow-hidden group ${selectedRole === 'student'
                                 ? themeClear
                                     ? 'border-emerald-500 bg-emerald-100/50 text-emerald-700 shadow-sm'
@@ -141,7 +146,12 @@ export function LoginPage() {
                         </button>
                         <button
                             type="button"
-                            onClick={() => setSelectedRole('teacher')}
+                            onClick={() => {
+                                setSelectedRole('teacher');
+                                setUsername('');
+                                setPassword('');
+                                setError('');
+                            }}
                             className={`p-4 rounded-2xl border transition-all duration-300 relative overflow-hidden group ${selectedRole === 'teacher'
                                 ? themeClear
                                     ? 'border-teal-500 bg-teal-100/50 text-teal-700 shadow-sm'
