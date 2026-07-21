@@ -368,6 +368,13 @@ export function WalasDashboard({ user, onBack }: WalasDashboardProps) {
                                 updated_at: new Date().toISOString()
                             } as any);
                         }
+                        
+                        if (row.Poin !== undefined) {
+                            const ssIndex = mockData.mockSkillSiswa.findIndex((ss: any) => ss.siswa_id === student.id);
+                            if (ssIndex >= 0) {
+                                mockData.mockSkillSiswa[ssIndex].poin = row.Poin;
+                            }
+                        }
                     } else {
                         // For Supabase, we upsert discipline data. We first need to get existing attitude scores to not overwrite them.
                         const { data: existingData } = await supabase
@@ -398,6 +405,13 @@ export function WalasDashboard({ user, onBack }: WalasDashboardProps) {
                                 attitude_scores: attitudeScores,
                                 updated_at: new Date().toISOString()
                             }, { onConflict: 'siswa_id' });
+                            
+                        if (row.Poin !== undefined) {
+                            await supabase
+                                .from('skill_siswa')
+                                .update({ poin: row.Poin, updated_at: new Date().toISOString() })
+                                .eq('siswa_id', student.id);
+                        }
                     }
                     updateCount++;
                 }

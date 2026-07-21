@@ -8,6 +8,7 @@ export interface AttendanceImportRow {
     Izin: number;
     Sakit: number;
     Alfa: number;
+    Poin?: number;
 }
 
 export function generateAttendanceTemplate(students: SiswaWithSkill[], kelas: string) {
@@ -19,6 +20,7 @@ export function generateAttendanceTemplate(students: SiswaWithSkill[], kelas: st
         'Izin': s.discipline_data?.izin || 0,
         'Sakit': s.discipline_data?.sakit || 0,
         'Alfa': s.discipline_data?.alfa || 0,
+        'Poin': s.poin || 0,
     }));
 
     const wb = XLSX.utils.book_new();
@@ -31,6 +33,7 @@ export function generateAttendanceTemplate(students: SiswaWithSkill[], kelas: st
         { wch: 10 }, // Izin
         { wch: 10 }, // Sakit
         { wch: 10 }, // Alfa
+        { wch: 10 }, // Poin
     ];
 
     XLSX.utils.book_append_sheet(wb, ws, 'Template Kehadiran');
@@ -62,6 +65,7 @@ export function parseAttendanceExcel(file: File): Promise<AttendanceImportRow[]>
                     Izin: Number(row.Izin) || 0,
                     Sakit: Number(row.Sakit) || 0,
                     Alfa: Number(row.Alfa) || 0,
+                    Poin: row.Poin !== undefined && row.Poin !== null ? Number(row.Poin) : undefined,
                 }));
                 
                 resolve(validData);
