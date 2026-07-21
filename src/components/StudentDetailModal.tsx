@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { X, Clock, Pencil, Save, Check, CreditCard, Download, Upload } from 'lucide-react';
+import { X, Clock, Pencil, Save, Check, CreditCard, Download, Upload, AlertTriangle, ShieldAlert } from 'lucide-react';
 import type { StudentListItem, LevelSkill, StudentDiscipline } from '../types';
 import { generateCertificate } from '../lib/certificateGenerator';
 import { supabase, isMockMode } from '../lib/supabase';
-import { mockDiscipline } from '../mocks/mockData';
+import mockData, { mockDiscipline } from '../mocks/mockData';
 import { useAuth } from '../contexts/AuthContext';
 import formatClassLabel from '../lib/formatJurusan';
 import { ProfileAvatar } from './ProfileAvatar';
@@ -58,6 +58,10 @@ export function StudentDetailModal({
   const [editAttitude, setEditAttitude] = useState<{ aspect: string, score: number }[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Admin Actions States
+  const [selectedNextLevelId, setSelectedNextLevelId] = useState<string>('');
+  const [isProcessingAdminAction, setIsProcessingAdminAction] = useState(false);
 
   // Check if current user can edit this student
   const walasClasses = (user?.kelas || '').split(',').map(c => normalizeClassName(c.trim())).filter(Boolean);
@@ -298,6 +302,74 @@ export function StudentDetailModal({
       alert('Gagal menyimpan perubahan: ' + (err as any).message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleResetSkill = async () => {
+    if (!window.confirm("PERINGATAN: Apakah Anda yakin ingin mereset skill siswa ini? Semua histori dan poin akan dihapus dan skor menjadi 0.")) return;
+    setIsProcessingAdminAction(true);
+    try {
+      if (isMockMode) {
+        const sIndex = mockData.mockSkillSiswa.findIndex(s => s.siswa_id === student.id);
+        if (sIndex >= 0) {
+          mockData.mockSkillSiswa[sIndex] = { ...mockData.mockSkillSiswa[sIndex], skor: 0, poin: 0 };
+        }
+        // Remove history
+        const hIndexes = mockData.mockCompetencyHistory.reduce((acc, h, idx) => h.siswa_id === student.id ? [...acc, idx] : acc, [] as number[]);
+        for (let i = hIndexes.length - 1; i >= 0; i--) {
+          mockData.mockCompetencyHistory.splice(hIndexes[i], 1);
+        }
+      } else {
+        const { error: skError } = await supabase.from('skill_siswa').update({ skor: 0, poin: 0 }).eq('siswa_id', student.id);
+        if (skError) throw skError;
+        const { error: hError } = await supabase.from('competency_history').delete().eq('siswa_id', student.id);
+        if (hError) throw hError;
+      }
+      alert('Skill siswa berhasil direset. Silakan muat ulang halaman atau tutup modal ini.');
+      if (onUpdate) await onUpdate(student.id, editName, editKelas, 0);
+      onClose();
+    } catch (e: any) {
+      alert('Gagal mereset skill: ' + e.message);
+    } finally {
+      setIsProcessingAdminAction(false);
+    }
+  };
+
+  const handleSetNextLevel = async () => {
+    if (!selectedNextLevelId) {
+      alert("Pilih level tujuan terlebih dahulu.");
+      return;
+    }
+    const targetLevel = levels.find(l => l.id === selectedNextLevelId);
+    if (!targetLevel) return;
+    
+    if (!window.confirm(`Apakah Anda yakin ingin menaikkan skor siswa menjadi ${targetLevel.min_skor} (Level ${targetLevel.urutan})?`)) return;
+    
+    setIsProcessingAdminAction(true);
+    try {
+      if (isMockMode) {
+        const sIndex = mockData.mockSkillSiswa.findIndex(s => s.siswa_id === student.id);
+        if (sIndex >= 0) {
+          mockData.mockSkillSiswa[sIndex] = { ...mockData.mockSkillSiswa[sIndex], skor: targetLevel.min_skor };
+        } else {
+          mockData.mockSkillSiswa.push({ id: `ss-${student.id}`, siswa_id: student.id, level_id: targetLevel.id, skor: targetLevel.min_skor, poin: 0, tanggal_pencapaian: new Date().toISOString(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+        }
+      } else {
+        const { error: skError } = await supabase.from('skill_siswa').upsert({
+            siswa_id: student.id,
+            level_id: targetLevel.id,
+            skor: targetLevel.min_skor,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'siswa_id' });
+        if (skError) throw skError;
+      }
+      alert(`Berhasil! Skor siswa diset ke ${targetLevel.min_skor} (${targetLevel.nama_level}).`);
+      if (onUpdate) await onUpdate(student.id, editName, editKelas, editPoin);
+      onClose();
+    } catch (e: any) {
+      alert('Gagal menaikkan level: ' + e.message);
+    } finally {
+      setIsProcessingAdminAction(false);
     }
   };
 
@@ -611,6 +683,52 @@ export function StudentDetailModal({
                   </div>
                 </div>
               </div>
+
+              {/* Admin Actions Panel */}
+              {user?.role === 'admin' && (
+                <div className="mb-6 p-4 rounded-xl border border-red-500/30 bg-red-500/5">
+                  <div className="flex items-center gap-2 text-red-400 font-bold uppercase text-xs mb-4">
+                    <ShieldAlert className="w-4 h-4" />
+                    Admin Khusus: Zona Berbahaya
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-3 bg-black/20 rounded-lg border border-red-500/10">
+                      <div className="text-xs text-slate-300 font-bold mb-1">Reset Skill Siswa</div>
+                      <div className="text-[10px] text-slate-500 mb-3">Hapus semua histori dan kembalikan skor ke 0.</div>
+                      <button 
+                        onClick={handleResetSkill} 
+                        disabled={isProcessingAdminAction}
+                        className="w-full py-2 bg-red-500/20 hover:bg-red-500/40 text-red-400 text-xs font-bold rounded-lg border border-red-500/30 transition-all"
+                      >
+                        Reset Skill & Histori
+                      </button>
+                    </div>
+                    <div className="p-3 bg-black/20 rounded-lg border border-indigo-500/10">
+                      <div className="text-xs text-slate-300 font-bold mb-1">Set Level (Bypass)</div>
+                      <div className="text-[10px] text-slate-500 mb-3">Naikkan skor siswa ke batas minimum level yang dipilih (karena kelas 12).</div>
+                      <div className="flex flex-col gap-2">
+                        <select 
+                          className="w-full p-2 bg-black/40 border border-white/10 rounded-lg text-xs text-white"
+                          value={selectedNextLevelId}
+                          onChange={(e) => setSelectedNextLevelId(e.target.value)}
+                        >
+                          <option value="">Pilih Level Tujuan...</option>
+                          {levels.map(l => (
+                            <option key={l.id} value={l.id}>{l.nama_level} (Min: {l.min_skor} XP)</option>
+                          ))}
+                        </select>
+                        <button 
+                          onClick={handleSetNextLevel} 
+                          disabled={isProcessingAdminAction || !selectedNextLevelId}
+                          className="w-full px-3 py-2 bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-400 text-xs font-bold rounded-lg border border-indigo-500/30 transition-all disabled:opacity-50"
+                        >
+                          Terapkan Skor Minimum
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>

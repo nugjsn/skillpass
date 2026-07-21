@@ -53,6 +53,9 @@ export const mockUsers: User[] = [
     // Admin account (can edit all departments)
     { id: 'u-admin', username: 'admin', password: '123', name: 'Administrator', role: 'admin' },
 
+    // Akun khusus admin
+    { id: 'admin-khusus', username: 'admin_khusus', password: '123', name: 'Admin Khusus', role: 'admin' },
+
     // HOD Coordinator (can edit all departments)
     { id: 'u-koord-hod', username: 'koord_hod', password: '123', name: 'Aprilia Rahayu Wilujeng, S.Pd Gr', role: 'admin' },
 
