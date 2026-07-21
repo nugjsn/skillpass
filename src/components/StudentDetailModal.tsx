@@ -355,15 +355,28 @@ export function StudentDetailModal({
           mockData.mockSkillSiswa.push({ id: `ss-${student.id}`, siswa_id: student.id, level_id: targetLevel.id, skor: targetLevel.min_skor, poin: 0, tanggal_pencapaian: new Date().toISOString(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
         }
       } else {
-        const { error: skError } = await supabase.from('skill_siswa')
-          .update({
-            level_id: targetLevel.id,
-            skor: targetLevel.min_skor,
-            updated_at: new Date().toISOString()
-          })
-          .eq('siswa_id', student.id);
+        const { data: existing } = await supabase.from('skill_siswa').select('id').eq('siswa_id', student.id).maybeSingle();
         
-        if (skError) throw skError;
+        if (existing) {
+          const { error: skError } = await supabase.from('skill_siswa')
+            .update({
+              level_id: targetLevel.id,
+              skor: targetLevel.min_skor,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existing.id);
+          if (skError) throw skError;
+        } else {
+          const { error: skError } = await supabase.from('skill_siswa')
+            .insert({
+              siswa_id: student.id,
+              level_id: targetLevel.id,
+              skor: targetLevel.min_skor,
+              poin: 0,
+              updated_at: new Date().toISOString()
+            });
+          if (skError) throw skError;
+        }
       }
       alert(`Berhasil! Skor siswa diset ke ${targetLevel.min_skor} (${targetLevel.nama_level}).`);
       if (onUpdate) await onUpdate(student.id, editName, editKelas, editPoin);

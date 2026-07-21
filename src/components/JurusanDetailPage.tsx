@@ -463,16 +463,47 @@ export function JurusanDetailPage({ jurusan, onBack, classFilter }: JurusanDetai
       } else {
         const studentIds = classFilteredStudents.map(s => s.id);
         
-        const { error: skError } = await supabase
+        // 1. Find who already has a record
+        const { data: existingRecords, error: fetchErr } = await supabase
           .from('skill_siswa')
-          .update({
-            level_id: targetLevel.id,
-            skor: targetLevel.min_skor,
-            updated_at: new Date().toISOString()
-          })
+          .select('siswa_id')
           .in('siswa_id', studentIds);
           
-        if (skError) throw skError;
+        if (fetchErr) throw fetchErr;
+        
+        const existingSiswaIds = (existingRecords || []).map((r: any) => r.siswa_id);
+        const newSiswaIds = studentIds.filter(id => !existingSiswaIds.includes(id));
+        
+        // 2. Update existing
+        if (existingSiswaIds.length > 0) {
+          const { error: updateErr } = await supabase
+            .from('skill_siswa')
+            .update({
+              level_id: targetLevel.id,
+              skor: targetLevel.min_skor,
+              updated_at: new Date().toISOString()
+            })
+            .in('siswa_id', existingSiswaIds);
+            
+          if (updateErr) throw updateErr;
+        }
+        
+        // 3. Insert new
+        if (newSiswaIds.length > 0) {
+          const inserts = newSiswaIds.map(id => ({
+            siswa_id: id,
+            level_id: targetLevel.id,
+            skor: targetLevel.min_skor,
+            poin: 0,
+            updated_at: new Date().toISOString()
+          }));
+          
+          const { error: insertErr } = await supabase
+            .from('skill_siswa')
+            .insert(inserts);
+            
+          if (insertErr) throw insertErr;
+        }
       }
       alert(`Berhasil mengatur skor ${classFilteredStudents.length} siswa ke ${targetLevel.nama_level}.`);
       await loadData();
