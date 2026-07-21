@@ -355,12 +355,14 @@ export function StudentDetailModal({
           mockData.mockSkillSiswa.push({ id: `ss-${student.id}`, siswa_id: student.id, level_id: targetLevel.id, skor: targetLevel.min_skor, poin: 0, tanggal_pencapaian: new Date().toISOString(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
         }
       } else {
-        const { error: skError } = await supabase.from('skill_siswa').upsert({
-            siswa_id: student.id,
+        const { error: skError } = await supabase.from('skill_siswa')
+          .update({
             level_id: targetLevel.id,
             skor: targetLevel.min_skor,
             updated_at: new Date().toISOString()
-        }, { onConflict: 'siswa_id' });
+          })
+          .eq('siswa_id', student.id);
+        
         if (skError) throw skError;
       }
       alert(`Berhasil! Skor siswa diset ke ${targetLevel.min_skor} (${targetLevel.nama_level}).`);

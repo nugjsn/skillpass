@@ -463,16 +463,14 @@ export function JurusanDetailPage({ jurusan, onBack, classFilter }: JurusanDetai
       } else {
         const studentIds = classFilteredStudents.map(s => s.id);
         
-        const updates = studentIds.map(id => ({
-          siswa_id: id,
-          level_id: targetLevel.id,
-          skor: targetLevel.min_skor,
-          updated_at: new Date().toISOString()
-        }));
-
         const { error: skError } = await supabase
           .from('skill_siswa')
-          .upsert(updates, { onConflict: 'siswa_id' });
+          .update({
+            level_id: targetLevel.id,
+            skor: targetLevel.min_skor,
+            updated_at: new Date().toISOString()
+          })
+          .in('siswa_id', studentIds);
           
         if (skError) throw skError;
       }
