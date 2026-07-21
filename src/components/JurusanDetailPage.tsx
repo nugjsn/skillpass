@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { ArrowLeft, Trash2, Download, ChevronLeft, ChevronRight, LayoutGrid, ArrowUpCircle } from 'lucide-react';
+import { ArrowLeft, Trash2, Download, ChevronLeft, ChevronRight, LayoutGrid, ArrowUpCircle, ShieldAlert } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { supabase, isMockMode } from '../lib/supabase';
 import mockData from '../mocks/mockData';
@@ -28,6 +28,9 @@ export function JurusanDetailPage({ jurusan, onBack, classFilter }: JurusanDetai
   const [showImport, setShowImport] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<StudentListItem | null>(null);
   const [direction, setDirection] = useState(0); // For slide animations: -1 or 1
+
+  const [selectedBulkLevelId, setSelectedBulkLevelId] = useState<string>('');
+  const [isProcessingBulk, setIsProcessingBulk] = useState(false);
 
   const IconComponent = (LucideIcons as any)[jurusan.icon] || LucideIcons.GraduationCap;
 
@@ -396,6 +399,92 @@ export function JurusanDetailPage({ jurusan, onBack, classFilter }: JurusanDetai
     });
   }, [students, activeTab, classFilter]);
 
+  const handleBulkReset = async () => {
+    if (!window.confirm(`PERINGATAN BUKAN MAIN-MAIN: Anda akan MERESET skor dan menghapus semua riwayat untuk ${classFilteredStudents.length} siswa di tab ini. Yakin?`)) return;
+    setIsProcessingBulk(true);
+    try {
+      if (isMockMode) {
+        const studentIds = classFilteredStudents.map(s => s.id);
+        mockData.mockSkillSiswa.forEach(ss => {
+          if (studentIds.includes(ss.siswa_id)) {
+            ss.skor = 0;
+            ss.poin = 0;
+          }
+        });
+        mockData.mockCompetencyHistory = mockData.mockCompetencyHistory.filter(h => !studentIds.includes(h.siswa_id));
+      } else {
+        const studentIds = classFilteredStudents.map(s => s.id);
+        
+        // Batch update skill_siswa
+        const { error: skError } = await supabase
+          .from('skill_siswa')
+          .update({ skor: 0, poin: 0 })
+          .in('siswa_id', studentIds);
+        if (skError) throw skError;
+
+        // Batch delete competency_history
+        const { error: hError } = await supabase
+          .from('competency_history')
+          .delete()
+          .in('siswa_id', studentIds);
+        if (hError) throw hError;
+      }
+      alert(`Berhasil mereset ${classFilteredStudents.length} siswa.`);
+      await loadData();
+    } catch (e: any) {
+      alert('Gagal mereset: ' + e.message);
+    } finally {
+      setIsProcessingBulk(false);
+    }
+  };
+
+  const handleBulkSetLevel = async () => {
+    if (!selectedBulkLevelId) {
+      alert("Pilih level tujuan terlebih dahulu.");
+      return;
+    }
+    const targetLevel = levels.find(l => l.id === selectedBulkLevelId);
+    if (!targetLevel) return;
+    if (!window.confirm(`Yakin ingin menaikkan skor ${classFilteredStudents.length} siswa ke batas minimum ${targetLevel.nama_level} (${targetLevel.min_skor})?`)) return;
+    
+    setIsProcessingBulk(true);
+    try {
+      if (isMockMode) {
+        const studentIds = classFilteredStudents.map(s => s.id);
+        
+        studentIds.forEach(id => {
+          const sIndex = mockData.mockSkillSiswa.findIndex(s => s.siswa_id === id);
+          if (sIndex >= 0) {
+            mockData.mockSkillSiswa[sIndex] = { ...mockData.mockSkillSiswa[sIndex], skor: targetLevel.min_skor };
+          } else {
+            mockData.mockSkillSiswa.push({ id: `ss-${id}`, siswa_id: id, level_id: targetLevel.id, skor: targetLevel.min_skor, poin: 0, tanggal_pencapaian: new Date().toISOString(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
+          }
+        });
+      } else {
+        const studentIds = classFilteredStudents.map(s => s.id);
+        
+        const updates = studentIds.map(id => ({
+          siswa_id: id,
+          level_id: targetLevel.id,
+          skor: targetLevel.min_skor,
+          updated_at: new Date().toISOString()
+        }));
+
+        const { error: skError } = await supabase
+          .from('skill_siswa')
+          .upsert(updates, { onConflict: 'siswa_id' });
+          
+        if (skError) throw skError;
+      }
+      alert(`Berhasil mengatur skor ${classFilteredStudents.length} siswa ke ${targetLevel.nama_level}.`);
+      await loadData();
+    } catch (e: any) {
+      alert('Gagal bypass level: ' + e.message);
+    } finally {
+      setIsProcessingBulk(false);
+    }
+  };
+
   // 2. Filter by level (For the table display)
   const filteredStudents = useMemo(() => {
     return classFilteredStudents.filter((s) => {
@@ -661,6 +750,53 @@ export function JurusanDetailPage({ jurusan, onBack, classFilter }: JurusanDetai
                             </select>
                           </div>
                         </div>
+                        
+                        {/* Bulk Action Admin Panel */}
+                        {user?.role === 'admin' && classFilteredStudents.length > 0 && (
+                          <div className="mb-4 p-4 rounded-xl border border-red-500/30 bg-red-500/5">
+                            <div className="flex items-center gap-2 text-red-400 font-bold uppercase text-xs mb-4">
+                              <ShieldAlert className="w-4 h-4" />
+                              Admin Khusus: Bulk Action (Berlaku untuk {classFilteredStudents.length} siswa di tab {activeTab})
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="p-3 bg-black/20 rounded-lg border border-red-500/10">
+                                <div className="text-xs text-slate-300 font-bold mb-1">Reset Skill {classFilteredStudents.length} Siswa</div>
+                                <div className="text-[10px] text-slate-500 mb-3">Hapus semua histori dan set skor ke 0.</div>
+                                <button 
+                                  onClick={handleBulkReset} 
+                                  disabled={isProcessingBulk}
+                                  className="w-full py-2 bg-red-500/20 hover:bg-red-500/40 text-red-400 text-xs font-bold rounded-lg border border-red-500/30 transition-all disabled:opacity-50"
+                                >
+                                  Reset Skill & Histori Masal
+                                </button>
+                              </div>
+                              <div className="p-3 bg-black/20 rounded-lg border border-indigo-500/10">
+                                <div className="text-xs text-slate-300 font-bold mb-1">Set Level Masal</div>
+                                <div className="text-[10px] text-slate-500 mb-3">Naikkan skor seluruh {classFilteredStudents.length} siswa secara instan.</div>
+                                <div className="flex gap-2">
+                                  <select 
+                                    className="flex-1 p-2 bg-black/40 border border-white/10 rounded-lg text-xs text-white"
+                                    value={selectedBulkLevelId}
+                                    onChange={(e) => setSelectedBulkLevelId(e.target.value)}
+                                  >
+                                    <option value="">Pilih Level Tujuan...</option>
+                                    {levels.map(l => (
+                                      <option key={l.id} value={l.id}>{l.nama_level} (Min: {l.min_skor})</option>
+                                    ))}
+                                  </select>
+                                  <button 
+                                    onClick={handleBulkSetLevel} 
+                                    disabled={isProcessingBulk || !selectedBulkLevelId}
+                                    className="px-3 py-2 bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-400 text-xs font-bold rounded-lg border border-indigo-500/30 transition-all disabled:opacity-50"
+                                  >
+                                    Terapkan
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="flex justify-between items-center gap-2 mb-4">
                           <div />
                           {isTeacher && (
