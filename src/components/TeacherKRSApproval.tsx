@@ -117,10 +117,13 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
 
             if (!statusMatch) return false;
 
-            // 2. Check Department Match (except Admin)
+            // 2. Check Department & School Match (except Admin)
             if (userRole !== 'admin') {
-                // HOD: if KRS has no jurusan_id, allow if same school (sekolah_id)
-                // This handles cases where KRS was submitted without jurusan_id
+                // Filter by sekolah_id: teacher should only see their own campus
+                if (user.sekolah_id && s.sekolah_id && s.sekolah_id !== user.sekolah_id) return false;
+
+                // Filter by jurusan_id: teacher should only see their own department
+                // Only filter when both the user and KRS have a jurusan_id set
                 if (userDeptId && s.jurusan_id && s.jurusan_id !== userDeptId) return false;
             }
 

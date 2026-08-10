@@ -81,6 +81,9 @@ export function HomePage({
       let filteredData = data || [];
       if (user?.role === 'student' && user.jurusan_id) {
         filteredData = filteredData.filter(j => j.id === user.jurusan_id);
+      } else if (user?.role === 'teacher_produktif' && user.jurusan_id) {
+        // Guru Produktif hanya melihat jurusan mereka sendiri
+        filteredData = filteredData.filter(j => j.id === user.jurusan_id);
       }
 
       loadPendingKRS();
@@ -241,8 +244,14 @@ export function HomePage({
 
       if (!statusMatch) return false;
 
-      // 2. Department Match
-      if (userRole !== 'admin' && userDeptId && s.jurusan_id && s.jurusan_id !== userDeptId) return false;
+      // 2. Department & School Match
+      if (userRole !== 'admin') {
+        // Filter by sekolah_id: only show submissions from the teacher's own campus
+        if (user.sekolah_id && s.sekolah_id && s.sekolah_id !== user.sekolah_id) return false;
+
+        // Filter by jurusan_id
+        if (userDeptId && s.jurusan_id && s.jurusan_id !== userDeptId) return false;
+      }
 
       // 3. Class Match for Anyone looking at their class (especially Walas)
       const studentNormClass = normalizeClass(s.kelas);
