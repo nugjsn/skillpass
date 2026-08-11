@@ -272,6 +272,24 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
                         <span className="text-xs font-bold text-[color:var(--accent-1)] uppercase tracking-widest [.theme-clear_&]:text-emerald-700">
                             Role: {userRole.replace('_', ' ')}
                         </span>
+                        {userRole === 'admin' && (
+                            <button
+                                onClick={async () => {
+                                    if(window.confirm("PERINGATAN: Anda yakin ingin mereset/menghapus SEMUA pengajuan sertifikasi dari semua siswa? Tindakan ini tidak bisa dibatalkan!")) {
+                                        const success = await krsStore.resetAllSubmissions();
+                                        if(success) {
+                                            alert("Semua pengajuan berhasil direset!");
+                                            loadSubmissions();
+                                        } else {
+                                            alert("Gagal mereset pengajuan. Silakan coba lagi.");
+                                        }
+                                    }
+                                }}
+                                className="text-[10px] bg-red-500/20 hover:bg-red-500/40 text-red-400 px-2 py-1 rounded font-bold uppercase transition-colors [.theme-clear_&]:bg-red-100 [.theme-clear_&]:text-red-700 [.theme-clear_&]:hover:bg-red-200"
+                            >
+                                Reset Pengajuan
+                            </button>
+                        )}
                         <button
                             onClick={async () => {
                                 await notificationStore.actions.markAllAsRead(user.id);

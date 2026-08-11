@@ -748,6 +748,35 @@ export const krsStore = {
         return true;
     },
 
+    async resetAllSubmissions(): Promise<boolean> {
+        if (isMockMode) {
+            localStorage.removeItem('skillpas_krs_submissions');
+            this.notifyUpdate();
+            return true;
+        }
+
+        const sekolahId = getSekolahId();
+        let query = supabase.from('krs').delete();
+
+        if (sekolahId) {
+            const { error } = await query.or(`sekolah_id.eq.${sekolahId},sekolah_id.is.null`);
+            if (error) {
+                console.error("Error resetting KRS", error);
+                return false;
+            }
+        } else {
+            // Need a dummy filter because Supabase requires one for delete
+            const { error } = await query.neq('status', 'nonexistent_status');
+            if (error) {
+                console.error("Error resetting KRS", error);
+                return false;
+            }
+        }
+
+        this.notifyUpdate();
+        return true;
+    },
+
     notifyUpdate() {
         window.dispatchEvent(new CustomEvent(KRS_UPDATED_EVENT));
     },
