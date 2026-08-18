@@ -8,14 +8,16 @@ import { groupCriteria } from '../lib/criteriaHelper';
 interface GradingModalProps {
     submission: KRSSubmission;
     onClose: () => void;
-    // Updated signature to include earnedXP
-    onConfirm: (score: number, earnedXP: number, result: 'Lulus' | 'Tidak Lulus', notes: string) => void;
+    // Updated signature to include earnedXP and examinerName
+    onConfirm: (score: number, earnedXP: number, result: 'Lulus' | 'Tidak Lulus', notes: string, examinerName: string) => void;
     initialScore?: number;
+    defaultExaminerName?: string;
 }
 
-export function GradingModal({ submission, onClose, onConfirm, initialScore = 0 }: GradingModalProps) {
+export function GradingModal({ submission, onClose, onConfirm, initialScore = 0, defaultExaminerName = '' }: GradingModalProps) {
     const [scores, setScores] = useState<Record<number, number>>({});
     const [notes, setNotes] = useState('');
+    const [examinerName, setExaminerName] = useState(defaultExaminerName);
     const [isSaving, setIsSaving] = useState(false);
     const [levelRange, setLevelRange] = useState<number>(25); // default range
     const [loadingLevel, setLoadingLevel] = useState(true);
@@ -127,13 +129,18 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0 
             }
         }
 
+        if (!examinerName.trim()) {
+            alert("Harap isi nama penguji!");
+            return;
+        }
+
         try {
             setIsSaving(true);
             const resultStatus = isLulus ? 'Lulus' : 'Tidak Lulus';
             // Round totalXP to 2 decimal places to avoid floating point precision issues, then floor it to whole number or keep decimal?
             // DB skill_siswa.skor is integer usually, we should round it.
             const roundedXP = Math.round(totalXP);
-            await onConfirm(averageScore, roundedXP, resultStatus, notes);
+            await onConfirm(averageScore, roundedXP, resultStatus, notes, examinerName);
         } finally {
             setIsSaving(false);
         }
@@ -209,16 +216,32 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0 
                                 })}
                             </div>
 
-                            <div className="space-y-3">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 [.theme-clear_&]:text-slate-600">
-                                    <MessageSquare className="w-4 h-4 text-indigo-400" /> Catatan Feedback Umum
-                                </label>
-                                <textarea
-                                    value={notes}
-                                    onChange={(e) => setNotes(e.target.value)}
-                                    placeholder="Contoh: Sangat baik dalam perakitan, perlu diperdalam di bagian troubleshooting."
-                                    className="w-full h-24 px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 transition-all outline-none resize-none text-sm [.theme-clear_&]:bg-white [.theme-clear_&]:border-slate-300 [.theme-clear_&]:text-slate-900"
-                                />
+                            <div className="space-y-4 mt-6 border-t border-slate-800 pt-6 [.theme-clear_&]:border-slate-200">
+                                <div className="space-y-3">
+                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 [.theme-clear_&]:text-slate-600">
+                                        <Award className="w-4 h-4 text-indigo-400" /> Nama Penguji
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={examinerName}
+                                        onChange={(e) => setExaminerName(e.target.value)}
+                                        placeholder="Ketik nama penguji..."
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 transition-all outline-none text-sm [.theme-clear_&]:bg-white [.theme-clear_&]:border-slate-300 [.theme-clear_&]:text-slate-900"
+                                    />
+                                    <p className="text-[10px] text-slate-500">Anda dapat mengubah nama ini jika penguji adalah pihak industri atau asesor lain.</p>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 [.theme-clear_&]:text-slate-600">
+                                        <MessageSquare className="w-4 h-4 text-indigo-400" /> Catatan Feedback Umum
+                                    </label>
+                                    <textarea
+                                        value={notes}
+                                        onChange={(e) => setNotes(e.target.value)}
+                                        placeholder="Contoh: Sangat baik dalam perakitan, perlu diperdalam di bagian troubleshooting."
+                                        className="w-full h-24 px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 transition-all outline-none resize-none text-sm [.theme-clear_&]:bg-white [.theme-clear_&]:border-slate-300 [.theme-clear_&]:text-slate-900"
+                                    />
+                                </div>
                             </div>
                         </>
                     )}

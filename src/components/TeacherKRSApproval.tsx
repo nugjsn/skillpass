@@ -231,10 +231,10 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
         setNotes('');
     };
 
-    const handleGrading = async (score: number, earnedXP: number, result: 'Lulus' | 'Tidak Lulus', gradingNotes: string) => {
+    const handleGrading = async (score: number, earnedXP: number, result: 'Lulus' | 'Tidak Lulus', gradingNotes: string, examinerName: string) => {
         if (!gradingSub) return;
         const studentName = gradingSub.siswa_nama;
-        const success = await krsStore.completeKRS(gradingSub.id, score, earnedXP, result, gradingNotes, user.name);
+        const success = await krsStore.completeKRS(gradingSub.id, score, earnedXP, result, gradingNotes, examinerName);
 
         if (success) {
             // Find student's WA number for the notification
@@ -551,6 +551,7 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
                 <GradingModal
                     submission={gradingSub}
                     initialScore={currentScore}
+                    defaultExaminerName={user.name}
                     onClose={() => setGradingSub(null)}
                     onConfirm={handleGrading}
                 />
