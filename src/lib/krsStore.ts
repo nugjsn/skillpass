@@ -748,6 +748,49 @@ export const krsStore = {
         return true;
     },
 
+    async resetStudentSubmissions(siswaId: string): Promise<boolean> {
+        if (isMockMode) {
+            const saved = localStorage.getItem('skillpas_krs_submissions');
+            if (saved) {
+                const data: KRSSubmission[] = JSON.parse(saved);
+                const filtered = data.filter(k => k.siswa_id !== siswaId);
+                localStorage.setItem('skillpas_krs_submissions', JSON.stringify(filtered));
+            }
+            this.notifyUpdate();
+            return true;
+        }
+
+        const { error } = await supabase.from('krs').delete().eq('siswa_id', siswaId);
+        if (error) {
+            console.error("Error resetting student KRS", error);
+            return false;
+        }
+        this.notifyUpdate();
+        return true;
+    },
+
+    async resetStudentsSubmissions(siswaIds: string[]): Promise<boolean> {
+        if (!siswaIds || siswaIds.length === 0) return true;
+        if (isMockMode) {
+            const saved = localStorage.getItem('skillpas_krs_submissions');
+            if (saved) {
+                const data: KRSSubmission[] = JSON.parse(saved);
+                const filtered = data.filter(k => !siswaIds.includes(k.siswa_id));
+                localStorage.setItem('skillpas_krs_submissions', JSON.stringify(filtered));
+            }
+            this.notifyUpdate();
+            return true;
+        }
+
+        const { error } = await supabase.from('krs').delete().in('siswa_id', siswaIds);
+        if (error) {
+            console.error("Error resetting students KRS", error);
+            return false;
+        }
+        this.notifyUpdate();
+        return true;
+    },
+
     async resetAllSubmissions(): Promise<boolean> {
         if (isMockMode) {
             localStorage.removeItem('skillpas_krs_submissions');

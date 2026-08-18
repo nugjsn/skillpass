@@ -12,6 +12,7 @@ import formatClassLabel from '../lib/formatJurusan';
 import ImportStudents from './ImportStudents';
 import { StudentTable } from './StudentTable';
 import StudentDetailModal from './StudentDetailModal';
+import { krsStore } from '../lib/krsStore';
 
 interface JurusanDetailPageProps {
   jurusan: Jurusan;
@@ -412,6 +413,7 @@ export function JurusanDetailPage({ jurusan, onBack, classFilter }: JurusanDetai
           }
         });
         mockData.mockCompetencyHistory = mockData.mockCompetencyHistory.filter(h => !studentIds.includes(h.siswa_id));
+        await krsStore.resetStudentsSubmissions(studentIds);
       } else {
         const studentIds = classFilteredStudents.map(s => s.id);
         
@@ -428,6 +430,9 @@ export function JurusanDetailPage({ jurusan, onBack, classFilter }: JurusanDetai
           .delete()
           .in('siswa_id', studentIds);
         if (hError) throw hError;
+
+        // Batch delete KRS submissions
+        await krsStore.resetStudentsSubmissions(studentIds);
       }
       alert(`Berhasil mereset ${classFilteredStudents.length} siswa.`);
       await loadData();

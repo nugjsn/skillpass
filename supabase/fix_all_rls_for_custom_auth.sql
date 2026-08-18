@@ -71,3 +71,40 @@ ON public.competency_history
 FOR INSERT
 TO public
 WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public can delete competency_history" ON public.competency_history;
+CREATE POLICY "Public can delete competency_history"
+ON public.competency_history
+FOR DELETE
+TO public
+USING (true);
+
+-- 6. Fix 'krs' table policies
+DROP POLICY IF EXISTS "Public can delete krs" ON public.krs;
+CREATE POLICY "Public can delete krs"
+ON public.krs
+FOR DELETE
+TO public
+USING (true);
+
+DROP POLICY IF EXISTS "Public can update krs" ON public.krs;
+CREATE POLICY "Public can update krs"
+ON public.krs
+FOR UPDATE
+TO public
+USING (true)
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public can insert krs" ON public.krs;
+CREATE POLICY "Public can insert krs"
+ON public.krs
+FOR INSERT
+TO public
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public can view krs" ON public.krs;
+CREATE POLICY "Public can view krs"
+ON public.krs
+FOR SELECT
+TO public
+USING (true);

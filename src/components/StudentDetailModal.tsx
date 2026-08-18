@@ -10,6 +10,7 @@ import { ProfileAvatar } from './ProfileAvatar';
 import { SkillCard } from './SkillCard';
 import { getGradeColor } from '../lib/gradingHelper';
 import { compressImage } from '../lib/imageUtils';
+import { krsStore } from '../lib/krsStore';
 
 const normalizeClassName = (name: string) => {
   if (!name) return '';
@@ -344,13 +345,15 @@ export function StudentDetailModal({
         for (let i = hIndexes.length - 1; i >= 0; i--) {
           mockData.mockCompetencyHistory.splice(hIndexes[i], 1);
         }
+        await krsStore.resetStudentSubmissions(student.id);
       } else {
         const { error: skError } = await supabase.from('skill_siswa').update({ skor: 0, poin: 0 }).eq('siswa_id', student.id);
         if (skError) throw skError;
         const { error: hError } = await supabase.from('competency_history').delete().eq('siswa_id', student.id);
         if (hError) throw hError;
+        await krsStore.resetStudentSubmissions(student.id);
       }
-      alert('Skill siswa berhasil direset. Silakan muat ulang halaman atau tutup modal ini.');
+      alert('Skill siswa dan pengajuan KRS berhasil direset.');
       if (onUpdate) await onUpdate(student.id, editName, editKelas, 0);
       onClose();
     } catch (e: any) {
