@@ -20,11 +20,13 @@ import { SkillCard } from './components/SkillCard';
 import { StudentHistoryModal } from './components/StudentHistoryModal';
 import { MissionModal } from './components/MissionModal';
 import { NilaiInfoModal } from './components/NilaiInfoModal';
+import { ProjectModal } from './components/Projects/ProjectModal';
 import { supabase, isMockMode } from './lib/supabase';
 import { krsStore } from './lib/krsStore';
+import { projectStore, PROJECTS_UPDATED_EVENT } from './lib/projectStore';
 import mockData from './mocks/mockData';
 import { mockUsers } from './mocks/mockUsers';
-import type { StudentStats, CompetencyHistory, LevelSkill } from './types';
+import type { StudentStats, CompetencyHistory, LevelSkill, StudentProject } from './types';
 
 
 function AppContent() {
@@ -40,6 +42,7 @@ function AppContent() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showMissionModal, setShowMissionModal] = useState(false);
   const [showNilaiInfoModal, setShowNilaiInfoModal] = useState(false);
+  const [showProjectModal, setShowProjectModal] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
 
   // Student Data States
@@ -52,6 +55,7 @@ function AppContent() {
   // Evidence data (foto/video bukti ujian) untuk ditampilkan di Buku Passport
   const [myEvidencePhotos, setMyEvidencePhotos] = useState<string[]>([]);
   const [myEvidenceVideos, setMyEvidenceVideos] = useState<string[]>([]);
+  const [myProjects, setMyProjects] = useState<StudentProject[]>([]);
   const prevAuthRef = useRef(isAuthenticated);
   const [themeClear, setThemeClear] = useState<boolean>(() => {
     try {
@@ -107,15 +111,19 @@ function AppContent() {
     return () => window.removeEventListener('auth-changed', handleAuthChange);
   }, []);
 
-  // Listen for KRS updates to refresh evidence data
+  // Listen for KRS and Project updates to refresh data
   useEffect(() => {
-    const handleKrsUpdate = () => {
+    const handleRefresh = () => {
       if (isAuthenticated && user?.role === 'student') {
         loadStudentData();
       }
     };
-    window.addEventListener('krs-updated', handleKrsUpdate);
-    return () => window.removeEventListener('krs-updated', handleKrsUpdate);
+    window.addEventListener('krs-updated', handleRefresh);
+    window.addEventListener(PROJECTS_UPDATED_EVENT, handleRefresh);
+    return () => {
+      window.removeEventListener('krs-updated', handleRefresh);
+      window.removeEventListener(PROJECTS_UPDATED_EVENT, handleRefresh);
+    };
   }, [isAuthenticated, user]);
 
   // Fetch student specific data
@@ -233,6 +241,14 @@ function AppContent() {
             }
           } catch (e) {
             console.warn('Failed to load evidence data', e);
+          }
+
+          // Fetch student projects & achievements
+          try {
+            const projs = await projectStore.getStudentProjects(student.id);
+            setMyProjects(projs || []);
+          } catch (e) {
+            console.warn('Failed to load projects', e);
           }
 
           // HOD & Walas
@@ -369,6 +385,7 @@ function AppContent() {
             onOpenPassport={() => setShowHistoryModal(true)}
             onOpenMissionModal={() => setShowMissionModal(true)}
             onOpenNilaiInfo={() => setShowNilaiInfoModal(true)}
+            onOpenProjectModal={() => setShowProjectModal(true)}
             myStats={myStats}
             allLevels={allLevels}
             onUpdateStats={loadStudentData}
@@ -430,6 +447,7 @@ function AppContent() {
           photoUrl={(user as any)?.photo_url}
           evidencePhotos={myEvidencePhotos}
           evidenceVideos={myEvidenceVideos}
+          projects={myProjects}
         />
       )}
 
@@ -450,6 +468,15 @@ function AppContent() {
           onClose={() => setShowNilaiInfoModal(false)}
           history={myHistory}
           levels={allLevels}
+          studentName={user.name}
+        />
+      )}
+
+      {showProjectModal && user && (
+        <ProjectModal
+          isOpen={showProjectModal}
+          onClose={() => setShowProjectModal(false)}
+          siswaId={myStats?.siswa_id || (user.name === 'Siswa Mesin' ? 's-j1-user' : user.id)}
           studentName={user.name}
         />
       )}

@@ -190,19 +190,26 @@ export function WalasDashboard({ user, onBack }: WalasDashboardProps) {
                     .select('*')
                     .in('siswa_id', filteredIds);
 
+                const projectQuery = supabase
+                    .from('student_projects')
+                    .select('*')
+                    .in('siswa_id', filteredIds);
+
                 if (user?.sekolah_id) {
                     historyQuery.eq('sekolah_id', user.sekolah_id);
                     disciplineQuery.eq('sekolah_id', user.sekolah_id);
                 }
 
-                const [historyRes, disciplineRes, submissions] = await Promise.all([
+                const [historyRes, disciplineRes, submissions, projectRes] = await Promise.all([
                     historyQuery,
                     disciplineQuery,
-                    krsStore.getSubmissions(filteredIds)
+                    krsStore.getSubmissions(filteredIds),
+                    projectQuery
                 ]);
 
                 const historyData = historyRes.data || [];
                 const disciplineData = disciplineRes.data || [];
+                const projectData = projectRes.data || [];
 
                 // 4. Enrich students with the fetched data
                 const enriched = filteredSiswa.map((s: any) => {
@@ -211,6 +218,7 @@ export function WalasDashboard({ user, onBack }: WalasDashboardProps) {
                     const krs = submissions.find(k => k.siswa_id === s.id);
                     const disc = (disciplineData || []).find((d: any) => d.siswa_id === s.id);
                     const history = historyData.filter((h: any) => h.siswa_id === s.id);
+                    const studentProjs = projectData.filter((p: any) => p.siswa_id === s.id);
                     const currentLevel = levels.find(l => score >= l.min_skor && score <= l.max_skor);
 
                     return {
@@ -220,7 +228,8 @@ export function WalasDashboard({ user, onBack }: WalasDashboardProps) {
                         current_level: currentLevel,
                         discipline_data: disc,
                         latest_krs: krs,
-                        riwayat_kompetensi: history
+                        riwayat_kompetensi: history,
+                        projects: studentProjs
                     };
                 });
 
@@ -772,6 +781,7 @@ export function WalasDashboard({ user, onBack }: WalasDashboardProps) {
                     walasName={user.name}
                     evidencePhotos={(selectedStudent as any).latest_krs?.evidence_photos}
                     evidenceVideos={(selectedStudent as any).latest_krs?.evidence_videos}
+                    projects={(selectedStudent as any).projects || []}
                 />
             )}
 

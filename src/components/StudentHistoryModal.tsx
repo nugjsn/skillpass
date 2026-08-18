@@ -1,5 +1,5 @@
 import React from 'react';
-import type { CompetencyHistory, LevelSkill, SiswaWithSkill } from '../types';
+import type { CompetencyHistory, LevelSkill, SiswaWithSkill, StudentProject } from '../types';
 import { PassportBook } from './Passport/PassportBook';
 
 interface StudentHistoryModalProps {
@@ -17,6 +17,7 @@ interface StudentHistoryModalProps {
     walasName?: string;
     evidencePhotos?: string[];
     evidenceVideos?: string[];
+    projects?: StudentProject[];
 }
 
 export const StudentHistoryModal: React.FC<StudentHistoryModalProps> = ({
@@ -34,6 +35,7 @@ export const StudentHistoryModal: React.FC<StudentHistoryModalProps> = ({
     walasName,
     evidencePhotos = [],
     evidenceVideos = [],
+    projects = [],
 }) => {
     if (!isOpen) return null;
 
@@ -51,6 +53,7 @@ export const StudentHistoryModal: React.FC<StudentHistoryModalProps> = ({
         skill_siswa: [], // Not needed for passport display currently
         evidence_photos: evidencePhotos,
         evidence_videos: evidenceVideos,
+        projects: projects,
     };
 
     return (

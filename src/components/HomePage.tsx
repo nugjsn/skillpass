@@ -8,7 +8,7 @@ import { DashboardRace } from './DashboardRace';
 import { useAuth } from '../contexts/AuthContext';
 import { ProfileAvatar } from './ProfileAvatar';
 import { AvatarSelectionModal } from './AvatarSelectionModal';
-import { Edit3, CheckCircle, Contact, BookOpen, LayoutDashboard, Clock, AlertTriangle, XCircle, FileCheck, Plus, Upload, GraduationCap, Zap, Medal, PlayCircle, ChevronRight } from 'lucide-react';
+import { Edit3, CheckCircle, Contact, BookOpen, LayoutDashboard, Clock, AlertTriangle, XCircle, FileCheck, Plus, Upload, GraduationCap, Zap, Medal, PlayCircle, ChevronRight, Trophy, FolderGit2 } from 'lucide-react';
 import { EvidenceUploadModal } from './EvidenceUploadModal';
 import { krsStore, KRS_UPDATED_EVENT } from '../lib/krsStore';
 import { LevelJourney } from './LevelJourney';
@@ -24,6 +24,7 @@ interface HomePageProps {
   onOpenPassport?: () => void;
   onOpenMissionModal?: () => void;
   onOpenNilaiInfo?: () => void;
+  onOpenProjectModal?: () => void;
   myStats?: StudentStats | null;
   allLevels?: LevelSkill[];
   onUpdateStats?: () => Promise<void>;
@@ -39,6 +40,7 @@ export function HomePage({
   onOpenPassport,
   onOpenMissionModal,
   onOpenNilaiInfo,
+  onOpenProjectModal,
   myStats: propsMyStats,
   allLevels,
   onUpdateStats
@@ -516,6 +518,38 @@ export function HomePage({
                   </div>
                 </div>
               </div>
+
+              {/* Student Portfolio Card - Upload Project & Lomba */}
+              {user?.role === 'student' && onOpenProjectModal && (
+                <div className="animate-fadeInUp pt-4 max-w-md">
+                  <div className="card-glass p-5 rounded-2xl flex flex-col relative overflow-hidden bg-gradient-to-br from-amber-500/10 via-slate-800/40 to-orange-500/10 border border-amber-500/20 shadow-lg group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/15 rounded-full blur-2xl -mr-8 -mt-8 pointer-events-none"></div>
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-gradient-to-br from-amber-500/30 to-orange-500/30 rounded-xl text-amber-400 border border-amber-500/30 group-hover:scale-110 transition-transform">
+                          <Trophy className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                            Portofolio Proyek & Prestasi
+                          </h3>
+                          <p className="text-[10px] text-amber-300/60">Dokumentasi karya untuk Buku Paspor</p>
+                        </div>
+                      </div>
+                      <p className="text-white/60 mb-4 text-[11px] leading-relaxed">
+                        Unggah proyek mandiri/tim atau hasil kejuaraan lomba agar tercetak di halaman resmi Buku Paspor Anda.
+                      </p>
+                      <button
+                        onClick={onOpenProjectModal}
+                        className="w-full px-4 py-2.5 rounded-xl font-bold text-[10px] bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-md shadow-amber-500/20 transition-all flex items-center justify-center gap-2 group/btn"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Upload Proyek / Lomba
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mt-6">
                 {user?.role !== 'student' && (

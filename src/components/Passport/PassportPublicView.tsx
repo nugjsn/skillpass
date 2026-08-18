@@ -120,6 +120,12 @@ export const PassportPublicView: React.FC<PassportPublicViewProps> = ({ siswaId 
                     .eq('siswa_id', siswaId)
                     .eq('status', 'completed');
 
+                const { data: projectData } = await supabase
+                    .from('student_projects')
+                    .select('*')
+                    .eq('siswa_id', siswaId)
+                    .order('tanggal', { ascending: false });
+
                 // Aggregate all evidence from completed exams
                 const allPhotos = krsData?.flatMap((k: any) => k.evidence_photos || []) || [];
                 const allVideos = krsData?.flatMap((k: any) => k.evidence_videos || []) || [];
@@ -135,7 +141,8 @@ export const PassportPublicView: React.FC<PassportPublicViewProps> = ({ siswaId 
                     current_skor: currentScore,
                     riwayat_kompetensi: historyData || [],
                     evidence_photos: allPhotos,
-                    evidence_videos: allVideos
+                    evidence_videos: allVideos,
+                    projects: projectData || []
                 } as any);
 
                 // Fetch HOD

@@ -1,7 +1,7 @@
 import React from 'react';
 import { PASSPORT_COLORS, PAGE_TEXTURE } from './PassportStyles';
-import { Fingerprint, Stamp, Image as ImageIcon, CheckCircle } from 'lucide-react'; // Globe, ShieldCheck, Plane, Cpu removed
-import type { SiswaWithSkill, CompetencyHistory, LevelSkill } from '../../types';
+import { Fingerprint, Stamp, Image as ImageIcon, CheckCircle, Trophy } from 'lucide-react';
+import type { SiswaWithSkill, CompetencyHistory, LevelSkill, StudentProject } from '../../types';
 
 
 interface PageProps {
@@ -277,6 +277,90 @@ export const PassportEvidencePage: React.FC<EvidencePageProps> = ({ photos, page
 
                 <div className="mt-4 pt-2 border-t border-slate-100 flex items-center justify-between">
                     <div className="text-[8px] text-slate-400 italic font-mono">Verified by Skill Passport Engine</div>
+                    <CheckCircle size={12} className="text-emerald-500" />
+                </div>
+            </div>
+        </PassportPage>
+    );
+};
+
+interface ProjectsPageProps {
+    projects: StudentProject[];
+    pageNumber: number;
+}
+
+export const PassportProjectsPage: React.FC<ProjectsPageProps> = ({ projects, pageNumber }) => {
+    return (
+        <PassportPage pageNumber={pageNumber}>
+            <div className="p-5 h-full flex flex-col">
+                <h3 className="text-center text-slate-400 text-xs font-bold uppercase mb-4 tracking-widest border-b border-slate-200 pb-2 flex items-center justify-center gap-2">
+                    <Trophy size={14} className="text-amber-500" /> Portofolio Proyek & Prestasi
+                </h3>
+
+                <div className="flex-1 overflow-y-auto pr-1 space-y-3.5 custom-scrollbar">
+                    {(!projects || projects.length === 0) ? (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-3 opacity-60">
+                            <div className="w-16 h-16 border-2 border-dashed border-slate-200 rounded-full flex items-center justify-center">
+                                <Trophy size={24} />
+                            </div>
+                            <p className="text-[10px] uppercase font-bold tracking-tighter">Belum Ada Proyek / Prestasi</p>
+                        </div>
+                    ) : (
+                        projects.map((p, idx) => (
+                            <div key={idx} className="bg-white/80 border border-slate-200 rounded-xl p-3 shadow-xs space-y-2 relative overflow-hidden">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div>
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${
+                                                p.kategori === 'lomba' ? 'bg-amber-100 text-amber-800' : 'bg-indigo-100 text-indigo-800'
+                                            }`}>
+                                                {p.kategori === 'lomba' ? '🏆 Lomba' : '🚀 Proyek'}
+                                            </span>
+                                            {p.juara && (
+                                                <span className="text-[8px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
+                                                    {p.juara}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-tight leading-tight">
+                                            {p.judul}
+                                        </h4>
+                                    </div>
+                                    {p.tanggal && (
+                                        <div className="text-[8px] text-slate-400 font-mono shrink-0">
+                                            {new Date(p.tanggal).toLocaleDateString('id-ID', { year: 'numeric', month: 'short' })}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="text-[9px] text-slate-600 space-y-0.5">
+                                    <div className="flex items-center gap-1">
+                                        <span className="font-bold text-slate-500">Peserta/Tim:</span>
+                                        <span className="truncate">{p.anggota}</span>
+                                    </div>
+                                    {p.deskripsi && (
+                                        <p className="text-[8.5px] text-slate-500 italic line-clamp-2">
+                                            "{p.deskripsi}"
+                                        </p>
+                                    )}
+                                </div>
+
+                                {p.foto_dokumentasi && p.foto_dokumentasi.length > 0 && (
+                                    <div className="grid grid-cols-3 gap-1.5 pt-1">
+                                        {p.foto_dokumentasi.map((url, imgIdx) => (
+                                            <div key={imgIdx} className="aspect-video rounded-md overflow-hidden border border-slate-200 bg-slate-100 shadow-xs">
+                                                <img src={url} alt="Karya" className="w-full h-full object-cover" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <div className="text-[8px] text-slate-400 italic font-mono">Skill Passport Project Showcase</div>
                     <CheckCircle size={12} className="text-emerald-500" />
                 </div>
             </div>

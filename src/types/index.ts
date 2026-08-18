@@ -5,6 +5,19 @@ export type Jurusan = Database['public']['Tables']['jurusan']['Row'];
 export type Siswa = Database['public']['Tables']['siswa']['Row'];
 export type SkillSiswa = Database['public']['Tables']['skill_siswa']['Row'];
 
+export interface StudentProject {
+  id: string;
+  siswa_id: string;
+  judul: string;
+  kategori: 'project' | 'lomba';
+  juara?: string;
+  anggota: string;
+  deskripsi?: string;
+  tanggal?: string;
+  foto_dokumentasi: string[];
+  created_at?: string;
+}
+
 export interface SiswaWithSkill extends Siswa {
   skill_siswa: SkillSiswa[];
   sekolah?: {
@@ -19,6 +32,7 @@ export interface SiswaWithSkill extends Siswa {
   discipline_data?: StudentDiscipline;
   evidence_photos?: string[];
   evidence_videos?: string[];
+  projects?: StudentProject[];
 }
 
 export interface JurusanWithStats extends Jurusan {

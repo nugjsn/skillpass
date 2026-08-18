@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { PassportCover, PassportIdentityPage, PassportStampsPage, PassportPage, PassportEvidencePage } from './PassportPages';
+import { PassportCover, PassportIdentityPage, PassportStampsPage, PassportPage, PassportEvidencePage, PassportProjectsPage } from './PassportPages';
 import { PASSPORT_DIMENSIONS } from './PassportStyles';
 import type { SiswaWithSkill, LevelSkill, CompetencyHistory } from '../../types';
 import { generateCertificate } from '../../lib/certificateGenerator';
@@ -72,6 +72,11 @@ export const PassportBook: React.FC<PassportBookProps> = ({ siswa, jurusanName, 
             photos={(siswa as any).evidence_photos || []}
             pageNumber={2}
         />, // 3 (Left)
+        <PassportProjectsPage
+            key="projects"
+            projects={siswa.projects || []}
+            pageNumber={3}
+        />, // 4 (Right)
     ];
 
     // Add Stamp Pages
