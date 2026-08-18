@@ -180,7 +180,6 @@ export function EvidenceUploadModal({ submissionId, siswaNama, onClose, onSucces
                                     </div>
                                 ))}
                             </div>
-                                </div>
                         </div>
                     </div>
 
