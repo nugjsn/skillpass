@@ -70,7 +70,6 @@ export const PassportBook: React.FC<PassportBookProps> = ({ siswa, jurusanName, 
         <PassportEvidencePage
             key="evidence"
             photos={(siswa as any).evidence_photos || []}
-            videos={(siswa as any).evidence_videos || []}
             pageNumber={2}
         />, // 3 (Left)
     ];

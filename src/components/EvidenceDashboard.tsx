@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-    ArrowLeft, Upload, ImageIcon, Video, CheckCircle,
-    XCircle, Clock, Trash2, RefreshCw, Camera, Film
+    ArrowLeft, Upload, ImageIcon, CheckCircle,
+    XCircle, Clock, Trash2, RefreshCw, Camera
 } from 'lucide-react';
 import { krsStore } from '../lib/krsStore';
 import type { KRSSubmission } from '../types';
@@ -12,20 +12,29 @@ import { EvidenceUploadModal } from './EvidenceUploadModal';
 interface EvidenceDashboardProps {
     user: User;
     onBack: () => void;
+    siswaId?: string; // ID dari tabel siswa (bukan users). Wajib diisi agar KRS ditemukan.
 }
 
-export function EvidenceDashboard({ user, onBack }: EvidenceDashboardProps) {
+export function EvidenceDashboard({ user, onBack, siswaId }: EvidenceDashboardProps) {
     const [submission, setSubmission] = useState<KRSSubmission | null>(null);
     const [loading, setLoading] = useState(true);
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
+    // Gunakan siswaId (tabel siswa) jika ada, karena krs.siswa_id mengacu ke tabel siswa.
+    // Fallback ke user.id (mungkin benar di mockMode atau jika siswa login dengan id yg sama).
+    const effectiveSiswaId = siswaId || user.id;
+
     const loadData = async () => {
         setLoading(true);
         try {
-            const sub = await krsStore.getStudentSubmission(user.id);
+            const sub = await krsStore.getStudentSubmission(effectiveSiswaId);
             if (sub) {
                 setSubmission(sub);
+            } else {
+                // Coba juga dengan nisn jika ada, sebagai fallback
+                console.log('[EvidenceDashboard] KRS tidak ditemukan untuk siswaId:', effectiveSiswaId);
+                setSubmission(null);
             }
         } finally {
             setLoading(false);
@@ -34,11 +43,10 @@ export function EvidenceDashboard({ user, onBack }: EvidenceDashboardProps) {
 
     useEffect(() => {
         loadData();
-    }, [user.id]);
+    }, [effectiveSiswaId]);
 
     const totalPhotos = submission?.evidence_photos?.length ?? 0;
-    const totalVideos = submission?.evidence_videos?.length ?? 0;
-    const hasEvidence = totalPhotos > 0 || totalVideos > 0;
+    const hasEvidence = totalPhotos > 0;
 
     const statusConfig = {
         pending_produktif: { label: 'Menunggu Guru Produktif', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20', icon: Clock },
@@ -115,10 +123,9 @@ export function EvidenceDashboard({ user, onBack }: EvidenceDashboardProps) {
                         )}
 
                         {/* Summary Stats */}
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                             {[
                                 { label: 'Foto Terupload', value: totalPhotos, icon: Camera, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-                                { label: 'Video Terupload', value: totalVideos, icon: Film, color: 'text-amber-400', bg: 'bg-amber-500/10' },
                                 { label: 'Status Upload', value: hasEvidence ? 'Tersedia' : 'Kosong', icon: hasEvidence ? CheckCircle : XCircle, color: hasEvidence ? 'text-emerald-400' : 'text-red-400', bg: hasEvidence ? 'bg-emerald-500/10' : 'bg-red-500/10' },
                             ].map((stat, i) => (
                                 <motion.div
@@ -193,40 +200,6 @@ export function EvidenceDashboard({ user, onBack }: EvidenceDashboardProps) {
                             </motion.div>
                         )}
 
-                        {/* Video List */}
-                        {totalVideos > 0 && (
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="bg-white/[0.03] border border-white/8 rounded-2xl p-5"
-                            >
-                                <div className="flex items-center gap-2 mb-4">
-                                    <Video className="w-5 h-5 text-amber-400" />
-                                    <h3 className="font-semibold text-white">Video Bukti <span className="text-white/40 font-normal">({totalVideos} video)</span></h3>
-                                    <span className="ml-auto text-xs text-emerald-400 flex items-center gap-1">
-                                        <CheckCircle className="w-3.5 h-3.5" /> Terverifikasi
-                                    </span>
-                                </div>
-                                <div className="space-y-3">
-                                    {submission.evidence_videos!.map((url, idx) => (
-                                        <div key={idx} className="bg-white/5 border border-white/5 rounded-xl overflow-hidden">
-                                            <video
-                                                src={url}
-                                                controls
-                                                className="w-full max-h-64 object-contain bg-black"
-                                                preload="metadata"
-                                            />
-                                            <div className="px-3 py-2 flex items-center gap-2">
-                                                <Film className="w-4 h-4 text-amber-400/70" />
-                                                <span className="text-xs text-white/50">Video Bukti #{idx + 1}</span>
-                                                <span className="ml-auto text-xs text-emerald-400">✓ Upload berhasil</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </motion.div>
-                        )}
-
                         {/* Empty state */}
                         {!hasEvidence && canUpload && (
                             <motion.div
@@ -246,7 +219,7 @@ export function EvidenceDashboard({ user, onBack }: EvidenceDashboardProps) {
                         <div className="bg-indigo-500/5 border border-indigo-500/15 rounded-2xl p-4 flex gap-3">
                             <CheckCircle className="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5" />
                             <div className="text-sm text-white/60">
-                                <span className="text-white/80 font-medium">Bukti ini akan terlihat oleh industri</span> yang memindai QR Code Paspor digital Anda. Pastikan foto atau video menunjukkan kegiatan ujian praktik secara nyata.
+                                <span className="text-white/80 font-medium">Bukti ini akan terlihat oleh industri</span> yang memindai QR Code Paspor digital Anda. Pastikan foto menunjukkan kegiatan ujian praktik secara nyata.
                             </div>
                         </div>
 
@@ -289,7 +262,6 @@ export function EvidenceDashboard({ user, onBack }: EvidenceDashboardProps) {
                         loadData();
                     }}
                     initialPhotos={submission.evidence_photos}
-                    initialVideos={submission.evidence_videos}
                 />
             )}
         </div>

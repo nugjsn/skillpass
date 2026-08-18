@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Clock, Pencil, Save, Check, CreditCard, Download, Upload, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { X, Clock, Pencil, Save, Check, CreditCard, Download, Upload, AlertTriangle, ShieldAlert, Loader2 } from 'lucide-react';
 import type { StudentListItem, LevelSkill, StudentDiscipline } from '../types';
 import { generateCertificate } from '../lib/certificateGenerator';
 import { supabase, isMockMode } from '../lib/supabase';
@@ -9,6 +9,7 @@ import formatClassLabel from '../lib/formatJurusan';
 import { ProfileAvatar } from './ProfileAvatar';
 import { SkillCard } from './SkillCard';
 import { getGradeColor } from '../lib/gradingHelper';
+import { compressImage } from '../lib/imageUtils';
 
 const normalizeClassName = (name: string) => {
   if (!name) return '';
@@ -58,6 +59,7 @@ export function StudentDetailModal({
   const [editAttitude, setEditAttitude] = useState<{ aspect: string, score: number }[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   // Admin Actions States
   const [selectedNextLevelId, setSelectedNextLevelId] = useState<string>('');
@@ -184,19 +186,42 @@ export function StudentDetailModal({
     }
   }, [editMasuk, editIzin, editSakit, editAlfa]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 200 * 1024) {
-      alert('Ukuran file terlalu besar! Maksimal 200KB.');
+    // Batas input 2MB agar user bisa pilih foto kamera biasa
+    const MAX_INPUT_MB = 2;
+    if (file.size > MAX_INPUT_MB * 1024 * 1024) {
+      alert(`Ukuran file terlalu besar! Maksimal ${MAX_INPUT_MB}MB untuk dipilih.`);
       e.target.value = '';
       return;
     }
 
-    setSelectedFile(file);
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
+    // Tampilkan preview langsung dari file asli
+    const originalUrl = URL.createObjectURL(file);
+    setPreviewUrl(originalUrl);
+
+    // Kompresi agresif agar hasil akhir ≤200KB
+    setIsCompressing(true);
+    try {
+      // Pass pertama: max 600px, quality 0.6 → biasanya ~60-120KB
+      let compressed = await compressImage(file, 600, 0.6);
+
+      // Jika masih > 200KB, kompresi lagi dengan quality lebih rendah
+      const MAX_OUTPUT_BYTES = 200 * 1024;
+      if (compressed.size > MAX_OUTPUT_BYTES) {
+        compressed = await compressImage(file, 400, 0.5);
+      }
+
+      const compressedFile = new File([compressed], file.name, { type: 'image/jpeg' });
+      setSelectedFile(compressedFile);
+    } catch (err) {
+      console.error('Kompresi gagal, pakai file asli:', err);
+      setSelectedFile(file);
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   useEffect(() => {
@@ -437,10 +462,17 @@ export function StudentDetailModal({
               {isEditing ? (
                 <div className="flex flex-wrap gap-2">
                   <div className="w-48">
-                    <label className="text-xs text-[color:var(--text-muted)] block mb-1">Foto Siswa (Maks 200KB)</label>
+                    <label className="text-xs text-[color:var(--text-muted)] block mb-1">
+                      Foto Siswa (dikompres ≤200KB) {isCompressing && <span className="text-indigo-400 animate-pulse">Mengompresi...</span>}
+                    </label>
                     <div className="relative">
                       <div className="w-full h-10 bg-black/20 border border-white/10 rounded-lg flex items-center justify-center overflow-hidden cursor-pointer hover:border-indigo-500/50 transition-all">
-                        {previewUrl || editPhotoUrl ? (
+                        {isCompressing ? (
+                          <div className="flex items-center gap-1 text-indigo-400 text-[10px] font-bold">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Kompresi...
+                          </div>
+                        ) : previewUrl || editPhotoUrl ? (
                           <img src={previewUrl || editPhotoUrl} alt="Preview" className="w-full h-full object-cover" />
                         ) : (
                           <div className="flex items-center gap-2 text-slate-500 text-[10px] font-bold uppercase">
@@ -452,10 +484,11 @@ export function StudentDetailModal({
                           type="file"
                           accept="image/*"
                           onChange={handleFileChange}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          disabled={isCompressing}
+                          className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
                         />
                       </div>
-                      {previewUrl && (
+                      {previewUrl && !isCompressing && (
                         <button
                           onClick={() => { setSelectedFile(null); setPreviewUrl(null); }}
                           className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow-lg z-10"
@@ -550,10 +583,10 @@ export function StudentDetailModal({
             </button>
             {isEditing ? (
               <>
-                <button onClick={handleSave} disabled={saving} className="p-2 rounded bg-green-500/20 text-green-500 hover:bg-green-500/30 transition-colors">
-                  <Save className="w-4 h-4" />
+                <button onClick={handleSave} disabled={saving || isCompressing} className="p-2 rounded bg-green-500/20 text-green-500 hover:bg-green-500/30 transition-colors disabled:opacity-50">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 </button>
-                <button onClick={() => setIsEditing(false)} disabled={saving} className="p-2 rounded hover:bg-white/5 text-[color:var(--text-muted)]">
+                <button onClick={() => setIsEditing(false)} disabled={saving || isCompressing} className="p-2 rounded hover:bg-white/5 text-[color:var(--text-muted)]">
                   <X className="w-4 h-4" />
                 </button>
               </>

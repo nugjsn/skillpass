@@ -21,9 +21,11 @@ import { StudentHistoryModal } from './components/StudentHistoryModal';
 import { MissionModal } from './components/MissionModal';
 import { NilaiInfoModal } from './components/NilaiInfoModal';
 import { supabase, isMockMode } from './lib/supabase';
+import { krsStore } from './lib/krsStore';
 import mockData from './mocks/mockData';
 import { mockUsers } from './mocks/mockUsers';
 import type { StudentStats, CompetencyHistory, LevelSkill } from './types';
+
 
 function AppContent() {
   const { user, logout, isAuthenticated, isTeacher } = useAuth();
@@ -47,6 +49,9 @@ function AppContent() {
   const [hodName, setHodName] = useState<string | undefined>(undefined);
   const [walasName, setWalasName] = useState<string>('');
   const [jurusanList, setJurusanList] = useState<any[]>([]);
+  // Evidence data (foto/video bukti ujian) untuk ditampilkan di Buku Passport
+  const [myEvidencePhotos, setMyEvidencePhotos] = useState<string[]>([]);
+  const [myEvidenceVideos, setMyEvidenceVideos] = useState<string[]>([]);
   const prevAuthRef = useRef(isAuthenticated);
   const [themeClear, setThemeClear] = useState<boolean>(() => {
     try {
@@ -101,6 +106,17 @@ function AppContent() {
     window.addEventListener('auth-changed', handleAuthChange);
     return () => window.removeEventListener('auth-changed', handleAuthChange);
   }, []);
+
+  // Listen for KRS updates to refresh evidence data
+  useEffect(() => {
+    const handleKrsUpdate = () => {
+      if (isAuthenticated && user?.role === 'student') {
+        loadStudentData();
+      }
+    };
+    window.addEventListener('krs-updated', handleKrsUpdate);
+    return () => window.removeEventListener('krs-updated', handleKrsUpdate);
+  }, [isAuthenticated, user]);
 
   // Fetch student specific data
   useEffect(() => {
@@ -204,6 +220,20 @@ function AppContent() {
 
           const { data: historyData } = await supabase.from('competency_history').select('*').eq('siswa_id', student.id).order('tanggal', { ascending: false });
           setMyHistory(historyData || []);
+
+          // Fetch evidence dari KRS submission terbaru siswa
+          try {
+            const krs = await krsStore.getStudentSubmission(student.id);
+            if (krs) {
+              setMyEvidencePhotos(krs.evidence_photos || []);
+              setMyEvidenceVideos(krs.evidence_videos || []);
+            } else {
+              setMyEvidencePhotos([]);
+              setMyEvidenceVideos([]);
+            }
+          } catch (e) {
+            console.warn('Failed to load evidence data', e);
+          }
 
           // HOD & Walas
           const { data: hodData } = await supabase.from('users').select('name').eq('role', 'hod').eq('jurusan_id', student.jurusan_id).maybeSingle();
@@ -317,6 +347,7 @@ function AppContent() {
           <EvidenceDashboard
             user={user!}
             onBack={() => setShowEvidenceDashboard(false)}
+            siswaId={myStats?.siswa_id}
           />
         ) : selectedJurusan ? (
           <JurusanDetailPage
@@ -397,6 +428,8 @@ function AppContent() {
           walasName={walasName}
           avatarUrl={(user as any)?.avatar_url}
           photoUrl={(user as any)?.photo_url}
+          evidencePhotos={myEvidencePhotos}
+          evidenceVideos={myEvidenceVideos}
         />
       )}
 

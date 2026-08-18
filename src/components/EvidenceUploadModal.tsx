@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { X, Upload, Image as ImageIcon, Video, Trash2, CheckCircle, Loader2 } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, Trash2, CheckCircle, Loader2 } from 'lucide-react';
 import { supabase, isMockMode } from '../lib/supabase';
 import { krsStore } from '../lib/krsStore';
 import { motion } from 'framer-motion';
@@ -11,12 +11,10 @@ interface EvidenceUploadModalProps {
     onClose: () => void;
     onSuccess: () => void;
     initialPhotos?: string[];
-    initialVideos?: string[];
 }
 
-export function EvidenceUploadModal({ submissionId, siswaNama, onClose, onSuccess, initialPhotos = [], initialVideos = [] }: EvidenceUploadModalProps) {
+export function EvidenceUploadModal({ submissionId, siswaNama, onClose, onSuccess, initialPhotos = [] }: EvidenceUploadModalProps) {
     const [photos, setPhotos] = useState<string[]>(initialPhotos);
-    const [videos, setVideos] = useState<string[]>(initialVideos);
     const [uploading, setUploading] = useState(false);
     const [compressing, setCompressing] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -24,7 +22,7 @@ export function EvidenceUploadModal({ submissionId, siswaNama, onClose, onSucces
     const photoInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
 
-    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>, type: 'photo' | 'video') => {
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
@@ -33,44 +31,41 @@ export function EvidenceUploadModal({ submissionId, siswaNama, onClose, onSucces
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
 
-            // Limit size: 10MB for photos (before compression), 20MB for videos
-            const maxSize = type === 'photo' ? 10 * 1024 * 1024 : 20 * 1024 * 1024;
+            // Limit size: 10MB for photos (before compression)
+            const maxSize = 10 * 1024 * 1024;
             if (file.size > maxSize) {
-                setError(`File ${file.name} terlalu besar. Maksimal ${type === 'photo' ? '10MB' : '20MB'}.`);
+                setError(`File ${file.name} terlalu besar. Maksimal 10MB.`);
                 continue;
             }
 
             // Compress if it's a photo
             let uploadData: File | Blob = file;
-            if (type === 'photo') {
-                setCompressing(true);
-                try {
-                    uploadData = await compressImage(file);
-                } catch (err) {
-                    console.error("Compression failed:", err);
-                    // Fallback to original file if compression fails
-                } finally {
-                    setCompressing(false);
-                }
+            setCompressing(true);
+            try {
+                uploadData = await compressImage(file);
+            } catch (err) {
+                console.error("Compression failed:", err);
+                // Fallback to original file if compression fails
+            } finally {
+                setCompressing(false);
             }
 
             if (isMockMode) {
                 // In mock mode, we use Object URLs for preview and "persistence" in this session
                 const url = URL.createObjectURL(uploadData);
-                if (type === 'photo') setPhotos(prev => [...prev, url]);
-                else setVideos(prev => [...prev, url]);
+                setPhotos(prev => [...prev, url]);
             } else {
                 // Real Supabase upload
                 setUploading(true);
                 try {
-                    const fileExt = type === 'photo' ? 'jpg' : file.name.split('.').pop();
+                    const fileExt = 'jpg';
                     const fileName = `${submissionId}-${Date.now()}-${i}.${fileExt}`;
                     const filePath = `evidence/${fileName}`;
 
                     const { error: uploadError } = await supabase.storage
                         .from('student-photos') // Using existing bucket or we might need a new one
                         .upload(filePath, uploadData, {
-                            contentType: type === 'photo' ? 'image/jpeg' : undefined
+                            contentType: 'image/jpeg'
                         });
 
                     if (uploadError) throw uploadError;
@@ -79,8 +74,7 @@ export function EvidenceUploadModal({ submissionId, siswaNama, onClose, onSucces
                         .from('student-photos')
                         .getPublicUrl(filePath);
 
-                    if (type === 'photo') setPhotos(prev => [...prev, publicUrl]);
-                    else setVideos(prev => [...prev, publicUrl]);
+                    setPhotos(prev => [...prev, publicUrl]);
                 } catch (err: any) {
                     console.error("Upload error:", err);
                     setError(`Gagal mengunggah ${file.name}: ${err.message}`);
@@ -94,18 +88,14 @@ export function EvidenceUploadModal({ submissionId, siswaNama, onClose, onSucces
         e.target.value = '';
     };
 
-    const handleRemove = (index: number, type: 'photo' | 'video') => {
-        if (type === 'photo') {
-            setPhotos(prev => prev.filter((_, i) => i !== index));
-        } else {
-            setVideos(prev => prev.filter((_, i) => i !== index));
-        }
+    const handleRemove = (index: number) => {
+        setPhotos(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleSave = async () => {
         setUploading(true);
         try {
-            const success = await krsStore.updateEvidence(submissionId, photos, videos);
+            const success = await krsStore.updateEvidence(submissionId, photos, []); // Pass empty array for videos
             if (success) {
                 onSuccess();
                 onClose();
@@ -172,7 +162,7 @@ export function EvidenceUploadModal({ submissionId, siswaNama, onClose, onSucces
                                     className="hidden"
                                     accept="image/*"
                                     multiple
-                                    onChange={(e) => handleFileSelect(e, 'photo')}
+                                    onChange={handleFileSelect}
                                 />
                             </div>
 
@@ -182,7 +172,7 @@ export function EvidenceUploadModal({ submissionId, siswaNama, onClose, onSucces
                                     <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-white/5 group">
                                         <img src={url} className="w-full h-full object-cover" alt="Preview" />
                                         <button
-                                            onClick={() => handleRemove(idx, 'photo')}
+                                            onClick={() => handleRemove(idx)}
                                             className="absolute top-1 right-1 p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
                                             <Trash2 size={12} />
@@ -190,50 +180,7 @@ export function EvidenceUploadModal({ submissionId, siswaNama, onClose, onSucces
                                     </div>
                                 ))}
                             </div>
-                        </div>
-
-                        {/* Video Upload Section */}
-                        <div className="space-y-3">
-                            <label className="text-sm font-bold text-slate-300 flex items-center gap-2">
-                                <Video className="w-4 h-4 text-amber-400" />
-                                Video Kegiatan (Max 20MB)
-                            </label>
-                            <div
-                                onClick={() => videoInputRef.current?.click()}
-                                className="border-2 border-dashed border-white/10 rounded-xl p-4 flex flex-col items-center justify-center gap-2 hover:border-indigo-500/50 hover:bg-white/5 transition-all cursor-pointer group"
-                            >
-                                <div className="p-3 bg-white/5 rounded-full group-hover:scale-110 transition-transform">
-                                    <Plus className="w-6 h-6 text-slate-500 group-hover:text-indigo-400" />
                                 </div>
-                                <span className="text-xs text-slate-500">Klik untuk pilih video</span>
-                                <input
-                                    type="file"
-                                    ref={videoInputRef}
-                                    className="hidden"
-                                    accept="video/*"
-                                    onChange={(e) => handleFileSelect(e, 'video')}
-                                />
-                            </div>
-
-                            {/* Video Previews */}
-                            <div className="space-y-2">
-                                {videos.map((_url, idx) => (
-                                    <div key={idx} className="flex items-center gap-3 p-2 bg-white/5 border border-white/5 rounded-lg group">
-                                        <div className="w-10 h-10 bg-amber-500/20 rounded flex items-center justify-center">
-                                            <Video className="w-5 h-5 text-amber-400" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-[10px] text-slate-400 truncate">Video Bukti #{idx + 1}</p>
-                                        </div>
-                                        <button
-                                            onClick={() => handleRemove(idx, 'video')}
-                                            className="p-1.5 hover:bg-red-500/20 text-slate-500 hover:text-red-400 rounded-lg transition-colors"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
                         </div>
                     </div>
 
@@ -255,7 +202,7 @@ export function EvidenceUploadModal({ submissionId, siswaNama, onClose, onSucces
                     </button>
                     <button
                         onClick={handleSave}
-                        disabled={uploading || compressing || (photos.length === 0 && videos.length === 0)}
+                        disabled={uploading || compressing || photos.length === 0}
                         className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-indigo-500/20 hover:-translate-y-0.5 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
                     >
                         {uploading || compressing ? (

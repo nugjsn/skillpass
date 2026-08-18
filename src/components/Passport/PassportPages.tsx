@@ -1,6 +1,6 @@
 import React from 'react';
 import { PASSPORT_COLORS, PAGE_TEXTURE } from './PassportStyles';
-import { Fingerprint, Stamp, Image as ImageIcon, Video, CheckCircle } from 'lucide-react'; // Globe, ShieldCheck, Plane, Cpu removed
+import { Fingerprint, Stamp, Image as ImageIcon, CheckCircle } from 'lucide-react'; // Globe, ShieldCheck, Plane, Cpu removed
 import type { SiswaWithSkill, CompetencyHistory, LevelSkill } from '../../types';
 
 
@@ -236,11 +236,10 @@ export const PassportStampsPage: React.FC<StampsPageProps> = ({ history, startIn
 
 interface EvidencePageProps {
     photos: string[];
-    videos: string[];
     pageNumber: number;
 }
 
-export const PassportEvidencePage: React.FC<EvidencePageProps> = ({ photos, videos, pageNumber }) => {
+export const PassportEvidencePage: React.FC<EvidencePageProps> = ({ photos, pageNumber }) => {
     return (
         <PassportPage pageNumber={pageNumber}>
             <div className="p-5 h-full flex flex-col">
@@ -249,7 +248,7 @@ export const PassportEvidencePage: React.FC<EvidencePageProps> = ({ photos, vide
                 </h3>
 
                 <div className="flex-1 overflow-y-auto pr-1 space-y-4">
-                    {(!photos || photos.length === 0) && (!videos || videos.length === 0) ? (
+                    {(!photos || photos.length === 0) ? (
                         <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-3 opacity-60">
                             <div className="w-16 h-16 border-2 border-dashed border-slate-200 rounded-full flex items-center justify-center">
                                 <ImageIcon size={24} />
@@ -267,28 +266,6 @@ export const PassportEvidencePage: React.FC<EvidencePageProps> = ({ photos, vide
                                         {photos.map((url, i) => (
                                             <div key={i} className="aspect-square rounded-lg border-2 border-slate-200 overflow-hidden bg-white shadow-sm -rotate-1 group hover:rotate-0 transition-all cursor-zoom-in">
                                                 <img src={url} className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all" alt="Bukti" />
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {videos && videos.length > 0 && (
-                                <div className="space-y-2">
-                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-tighter flex items-center gap-1">
-                                        <Video size={10} /> Video Kegiatan
-                                    </h4>
-                                    <div className="space-y-2">
-                                        {videos.map((url, i) => (
-                                            <div key={i} className="rounded-lg border-2 border-slate-200 overflow-hidden bg-slate-900 aspect-video relative group">
-                                                <video
-                                                    src={url}
-                                                    className="w-full h-full object-contain"
-                                                    controls
-                                                />
-                                                <div className="absolute top-1 right-1 bg-black/50 text-white text-[8px] px-1.5 py-0.5 rounded backdrop-blur-sm opacity-60">
-                                                    VIDEO #{i + 1}
-                                                </div>
                                             </div>
                                         ))}
                                     </div>
