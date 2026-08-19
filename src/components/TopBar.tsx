@@ -36,7 +36,7 @@ export function TopBar({
                     className="flex items-center gap-3 cursor-pointer group"
                     onClick={onBackToHome}
                 >
-                    <img src="/logo.png" alt="SMK Logo" className="w-10 h-10 sm:w-12 sm:h-12 object-cover flex-shrink-0 logo-adaptive group-hover:scale-110 transition-transform" />
+                    <img src="/logo.png" alt="SMK Logo" className="w-10 h-10 sm:w-12 sm:h-12 object-contain flex-shrink-0 logo-adaptive group-hover:scale-110 transition-transform" />
                     <div>
                         <div className="min-w-0">
                             <div className="text-sm sm:text-lg font-black tracking-tighter text-white">SKILL PASSPORT</div>
