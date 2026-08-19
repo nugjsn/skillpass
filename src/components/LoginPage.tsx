@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn, User, GraduationCap, Sun, Moon, Instagram, Eye, EyeOff, MessageCircle } from 'lucide-react';
+import { LogIn, User, GraduationCap, Sun, Moon, Eye, EyeOff, Info } from 'lucide-react';
 import loginBg from '../assets/login-bg.png';
 import loginLightBg from '../assets/login-light-bg.png';
+import { AboutModal } from './AboutModal';
 
 export function LoginPage() {
     const { login } = useAuth();
@@ -12,6 +13,7 @@ export function LoginPage() {
     const [selectedRole, setSelectedRole] = useState<'student' | 'teacher'>('student');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showAbout, setShowAbout] = useState(false);
     const [themeClear, setThemeClear] = useState<boolean>(() => {
         try {
             return localStorage.getItem('theme') === 'clear';
@@ -248,31 +250,23 @@ export function LoginPage() {
                 </div>
 
                 {/* Footer decorations */}
-                <div className={`mt-8 text-center text-xs ${themeClear ? 'text-slate-400' : 'text-white/40'}`}>
-                    <div className="flex flex-col items-center gap-1">
-                        <p className="font-semibold tracking-wide">DEVELOPED BY JSNUGROHO</p>
-                        <div className="flex gap-6 opacity-80 mt-2">
-                            <a
-                                href="https://instagram.com/j.s_nugroho"
-                                target="_blank"
-                                rel="noreferrer"
-                                className="flex items-center justify-center p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 hover:text-pink-400 transition-all group"
-                                title="@j.s_nugroho"
-                            >
-                                <Instagram className="w-5 h-5 transform group-hover:scale-110 transition-transform" />
-                            </a>
-                            <a
-                                href="https://wa.me/6281316052316"
-                                target="_blank"
-                                rel="noreferrer"
-                                className="flex items-center justify-center p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 hover:text-green-400 transition-all group"
-                                title="0813-1605-2316"
-                            >
-                                <MessageCircle className="w-5 h-5 transform group-hover:scale-110 transition-transform" />
-                            </a>
-                        </div>
-                    </div>
+                <div className="mt-8 text-center">
+                    <button
+                        type="button"
+                        onClick={() => setShowAbout(true)}
+                        className={`inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-widest uppercase px-4 py-2 rounded-full border transition-all duration-300 hover:scale-105 ${
+                            themeClear
+                                ? 'text-slate-400 border-slate-200 hover:bg-slate-100 hover:text-slate-600'
+                                : 'text-white/30 border-white/10 hover:bg-white/5 hover:text-white/60'
+                        }`}
+                    >
+                        <Info className="w-3.5 h-3.5" />
+                        Tentang Aplikasi
+                    </button>
                 </div>
+
+                {/* About Modal */}
+                <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
             </div>
         </div>
     );
