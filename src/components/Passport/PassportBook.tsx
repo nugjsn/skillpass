@@ -62,6 +62,9 @@ export const PassportBook: React.FC<PassportBookProps> = ({ siswa, jurusanName, 
         setSelectedCompetency(null); // Close modal after download
     };
 
+    // Get latest exam name for evidence description
+    const latestExam = history.length > 0 ? history[history.length - 1].unit_kompetensi : undefined;
+
     // Construct pages array
     const pages: React.ReactNode[] = [
         <PassportCover key="cover" schoolName={siswa.sekolah?.nama_sekolah || "SMK Mitra Industri"} />, // 0
@@ -71,6 +74,7 @@ export const PassportBook: React.FC<PassportBookProps> = ({ siswa, jurusanName, 
             key="evidence"
             photos={(siswa as any).evidence_photos || []}
             pageNumber={2}
+            examName={latestExam}
         />, // 3 (Left)
         <PassportProjectsPage
             key="projects"

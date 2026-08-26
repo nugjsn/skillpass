@@ -29,6 +29,7 @@ export function MissionModal({ isOpen, onClose, jurusan, currentScore, currentPo
     const [submission, setSubmission] = useState<KRSSubmission | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [passedItems, setPassedItems] = useState<Set<string>>(new Set());
+    const [activeSpecialization, setActiveSpecialization] = useState<string | null>(null);
     const storageKey = `skillpas_krs_${siswaId}`;
 
     useEffect(() => {
@@ -89,6 +90,21 @@ export function MissionModal({ isOpen, onClose, jurusan, currentScore, currentPo
                 }
                 setPassedItems(historyItems);
 
+                // Find active specialization
+                let spec: string | null = null;
+                for (const level of levels) {
+                    const groups = groupCriteria(level.criteria);
+                    for (const group of groups) {
+                        if (group.subs.length > 0) {
+                            // If they passed any sub-item in this group, they have a specialization
+                            if (group.subs.some(sub => historyItems.has(sub))) {
+                                spec = group.main;
+                            }
+                        }
+                    }
+                }
+                setActiveSpecialization(spec);
+
                 // 3. Load KRS and filter passed items
                 const sub = await krsStore.getStudentSubmission(siswaId);
                 setSubmission(sub || null);
@@ -135,7 +151,7 @@ export function MissionModal({ isOpen, onClose, jurusan, currentScore, currentPo
         setExpandedGroups(next);
     };
 
-    const toggleKRS = (mission: string, levelId: string) => {
+    const toggleKRS = (mission: string, levelId: string, groupMain?: string, hasSubs?: boolean) => {
         // Prevent selection if already passed
         if (passedItems.has(mission)) {
             return;
@@ -146,10 +162,38 @@ export function MissionModal({ isOpen, onClose, jurusan, currentScore, currentPo
             return;
         }
 
+        // Specialization Logic
+        if (groupMain && hasSubs) {
+            if (activeSpecialization && activeSpecialization !== groupMain) {
+                alert(`Anda sudah mengambil spesialisasi: ${activeSpecialization}. Anda hanya bisa memilih sub-tema dari spesialisasi tersebut.`);
+                return;
+            }
+        }
+
         let newKRS = [...selectedKRS];
         if (newKRS.includes(mission)) {
             newKRS = newKRS.filter(m => m !== mission);
         } else {
+            // Check if adding this mixes specializations
+            if (groupMain && hasSubs && !activeSpecialization) {
+                // Determine if there's already a different specialization group in selectedKRS
+                const selectedGroupsWithSubs = new Set<string>();
+                if (nextLevel) {
+                    const groups = groupCriteria(nextLevel.criteria);
+                    for (const sel of newKRS) {
+                        // Find which group this selected item belongs to
+                        const selGroup = groups.find(g => g.subs.includes(sel));
+                        if (selGroup) {
+                            selectedGroupsWithSubs.add(selGroup.main);
+                        }
+                    }
+                }
+                if (selectedGroupsWithSubs.size > 0 && !selectedGroupsWithSubs.has(groupMain)) {
+                    alert("Anda hanya bisa memilih target kompetensi dari satu bidang spesialisasi yang sama.");
+                    return;
+                }
+            }
+
             if (newKRS.length >= 2) {
                 alert("Maksimal 2 target kompetensi dalam sekali ambil.");
                 return;
@@ -338,26 +382,31 @@ export function MissionModal({ isOpen, onClose, jurusan, currentScore, currentPo
                                                             <div key={groupKey} className="space-y-2">
                                                                 {/* Main Item / Group Header */}
                                                                 <div
-                                                                    className={`flex items-start justify-between gap-3 p-3.5 rounded-xl border transition-all ${isLocked || passedItems.has(group.main) ? 'cursor-not-allowed bg-white/5 border-white/5 [.theme-clear_&]:bg-slate-100 [.theme-clear_&]:border-slate-200' : 'group'
-                                                                        } ${isSelected
+                                                                    className={`flex items-start justify-between gap-3 p-3.5 rounded-xl border transition-all ${isLocked || (!hasSubs && passedItems.has(group.main)) ? 'cursor-not-allowed bg-white/5 border-white/5 [.theme-clear_&]:bg-slate-100 [.theme-clear_&]:border-slate-200' : 'group'
+                                                                        } ${(!hasSubs && isSelected)
                                                                             ? 'bg-indigo-500/20 border-indigo-500 shadow-[inset_0_0_10px_rgba(99,102,241,0.2)] [.theme-clear_&]:bg-indigo-50/80'
-                                                                            : !isLocked && !passedItems.has(group.main) ? 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20 [.theme-clear_&]:bg-white [.theme-clear_&]:border-slate-200' : ''
-                                                                        } ${passedItems.has(group.main) ? 'opacity-80 border-emerald-500/30' : ''}`}
+                                                                            : !isLocked && (!hasSubs && !passedItems.has(group.main)) ? 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20 [.theme-clear_&]:bg-white [.theme-clear_&]:border-slate-200' : 'bg-white/5 border-white/5 [.theme-clear_&]:bg-white [.theme-clear_&]:border-slate-200'
+                                                                        } ${!hasSubs && passedItems.has(group.main) ? 'opacity-80 border-emerald-500/30' : ''}`}
                                                                 >
                                                                     <div 
-                                                                        className="flex gap-3 flex-1 cursor-pointer"
+                                                                        className={`flex gap-3 flex-1 ${!hasSubs ? 'cursor-pointer' : ''}`}
                                                                         onClick={() => {
-                                                                            if (!passedItems.has(group.main)) toggleKRS(group.main, level.id);
+                                                                            if (!hasSubs && !passedItems.has(group.main)) toggleKRS(group.main, level.id);
                                                                         }}
                                                                     >
-                                                                        <div className="mt-0.5 shrink-0 transition-colors">
-                                                                            <div className={`p-1 rounded-full border ${passedItems.has(group.main) ? 'bg-emerald-500 border-emerald-500 text-white' : isSelected ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-indigo-500/20 text-indigo-400/50 group-hover:border-indigo-500/50 group-hover:text-indigo-400'}`}>
-                                                                                {passedItems.has(group.main) ? <Check className="w-3 h-3" /> : isSelected ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                                                                        {!hasSubs && (
+                                                                            <div className="mt-0.5 shrink-0 transition-colors">
+                                                                                <div className={`p-1 rounded-full border ${passedItems.has(group.main) ? 'bg-emerald-500 border-emerald-500 text-white' : isSelected ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-indigo-500/20 text-indigo-400/50 group-hover:border-indigo-500/50 group-hover:text-indigo-400'}`}>
+                                                                                    {passedItems.has(group.main) ? <Check className="w-3 h-3" /> : isSelected ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                                                                                </div>
                                                                             </div>
-                                                                        </div>
-                                                                        <span className={`text-xs sm:text-sm transition-colors ${passedItems.has(group.main) ? 'text-emerald-400 font-bold' : isSelected ? 'text-white font-black [.theme-clear_&]:text-indigo-950' : 'text-gray-400 group-hover:text-gray-200 [.theme-clear_&]:text-slate-600 [.theme-clear_&]:group-hover:text-slate-900'}`}>
+                                                                        )}
+                                                                        <span className={`text-xs sm:text-sm transition-colors ${!hasSubs && passedItems.has(group.main) ? 'text-emerald-400 font-bold' : (!hasSubs && isSelected) ? 'text-white font-black [.theme-clear_&]:text-indigo-950' : 'text-gray-400 group-hover:text-gray-200 [.theme-clear_&]:text-slate-600 [.theme-clear_&]:group-hover:text-slate-900'}`}>
                                                                             {renderBold(group.main)}
-                                                                            {passedItems.has(group.main) && <span className="ml-2 text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded uppercase align-middle">Lulus</span>}
+                                                                            {!hasSubs && passedItems.has(group.main) && <span className="ml-2 text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded uppercase align-middle">Lulus</span>}
+                                                                            {hasSubs && activeSpecialization === group.main && (
+                                                                                <span className="ml-2 text-[9px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-1.5 py-0.5 rounded uppercase align-middle [.theme-clear_&]:text-indigo-700">Spesialisasi Kamu</span>
+                                                                            )}
                                                                         </span>
                                                                     </div>
                                                                     
@@ -369,7 +418,7 @@ export function MissionModal({ isOpen, onClose, jurusan, currentScore, currentPo
                                                                             }}
                                                                             className="flex flex-col items-end gap-1 cursor-pointer p-1 hover:bg-white/5 rounded shrink-0"
                                                                         >
-                                                                            <span className="text-[10px] font-black text-indigo-400/40 uppercase mt-1">{group.subs.length} Detail</span>
+                                                                            <span className="text-[10px] font-black text-indigo-400/40 uppercase mt-1">{group.subs.length} Sub-tema</span>
                                                                             {isExpanded ? <ChevronDown className="w-4 h-4 text-indigo-400" /> : <ChevronRight className="w-4 h-4 text-indigo-400/50" />}
                                                                         </div>
                                                                     )}
@@ -385,14 +434,28 @@ export function MissionModal({ isOpen, onClose, jurusan, currentScore, currentPo
                                                                             className="overflow-hidden space-y-2 ml-4 border-l border-white/5 pl-4 mt-2"
                                                                         >
                                                                             {group.subs.map((sub, sIdx) => {
+                                                                                const isSubPassed = passedItems.has(sub);
+                                                                                const isSubSelected = selectedKRS.includes(sub);
                                                                                 return (
                                                                                     <div
                                                                                         key={sIdx}
-                                                                                        className={`flex items-start gap-3 p-2 transition-all opacity-80`}
+                                                                                        onClick={() => {
+                                                                                            if (!isSubPassed) toggleKRS(sub, level.id, group.main, true);
+                                                                                        }}
+                                                                                        className={`flex items-start gap-3 p-2.5 rounded-lg border transition-all cursor-pointer ${isLocked || isSubPassed ? 'cursor-not-allowed bg-black/10 border-transparent [.theme-clear_&]:bg-slate-50' : 'group/sub'} ${
+                                                                                            isSubSelected
+                                                                                                ? 'bg-indigo-500/20 border-indigo-500 shadow-[inset_0_0_10px_rgba(99,102,241,0.2)] [.theme-clear_&]:bg-indigo-50/80'
+                                                                                                : !isLocked && !isSubPassed ? 'bg-transparent border-transparent hover:bg-white/5 hover:border-white/10 [.theme-clear_&]:hover:bg-white [.theme-clear_&]:hover:border-slate-200' : ''
+                                                                                        }`}
                                                                                     >
-                                                                                        <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-indigo-500/50 shrink-0" />
-                                                                                        <span className={`text-xs text-gray-400 [.theme-clear_&]:text-slate-500`}>
+                                                                                        <div className="mt-0.5 shrink-0 transition-colors">
+                                                                                            <div className={`p-1 rounded-full border ${isSubPassed ? 'bg-emerald-500 border-emerald-500 text-white' : isSubSelected ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-indigo-500/20 text-indigo-400/50 group-hover/sub:border-indigo-500/50 group-hover/sub:text-indigo-400'}`}>
+                                                                                                {isSubPassed ? <Check className="w-3 h-3" /> : isSubSelected ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                                                                                            </div>
+                                                                                        </div>
+                                                                                        <span className={`text-xs transition-colors ${isSubPassed ? 'text-emerald-400 font-bold' : isSubSelected ? 'text-white font-black [.theme-clear_&]:text-indigo-950' : 'text-gray-400 group-hover/sub:text-gray-200 [.theme-clear_&]:text-slate-500 [.theme-clear_&]:group-hover/sub:text-slate-800'}`}>
                                                                                             {renderBold(sub, true)}
+                                                                                            {isSubPassed && <span className="ml-2 text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded uppercase align-middle">Lulus</span>}
                                                                                         </span>
                                                                                     </div>
                                                                                 );

@@ -237,14 +237,22 @@ export const PassportStampsPage: React.FC<StampsPageProps> = ({ history, startIn
 interface EvidencePageProps {
     photos: string[];
     pageNumber: number;
+    examName?: string;
 }
 
-export const PassportEvidencePage: React.FC<EvidencePageProps> = ({ photos, pageNumber }) => {
+export const PassportEvidencePage: React.FC<EvidencePageProps> = ({ photos, pageNumber, examName }) => {
     return (
         <PassportPage pageNumber={pageNumber}>
             <div className="p-5 h-full flex flex-col">
-                <h3 className="text-center text-slate-400 text-xs font-bold uppercase mb-4 tracking-widest border-b border-slate-200 pb-2 flex items-center justify-center gap-2">
-                    <Fingerprint size={14} /> Dokumen Bukti Ujian
+                <h3 className="text-center text-slate-400 text-xs font-bold uppercase mb-4 tracking-widest border-b border-slate-200 pb-2 flex flex-col items-center justify-center gap-1">
+                    <div className="flex items-center gap-2">
+                        <Fingerprint size={14} /> Dokumen Bukti Ujian
+                    </div>
+                    {examName && (
+                        <div className="text-[10px] text-emerald-600 font-mono mt-1 normal-case font-semibold tracking-normal text-center">
+                            {examName}
+                        </div>
+                    )}
                 </h3>
 
                 <div className="flex-1 overflow-y-auto pr-1 space-y-4">
