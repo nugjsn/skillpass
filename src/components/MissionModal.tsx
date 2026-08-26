@@ -374,7 +374,10 @@ export function MissionModal({ isOpen, onClose, jurusan, currentScore, currentPo
 
                                                     return groups.map((group, gIdx) => {
                                                         const groupKey = `${level.id}-${gIdx}`;
-                                                        const hasSubs = group.subs.length > 0;
+                                                        const rawHasSubs = group.subs.length > 0;
+                                                        // Beginner 1 (level pertama): pilih per kriteria utama, bukan sub-tema
+                                                        const isFirstLevel = allLevels.length > 0 && level.id === allLevels[0].id;
+                                                        const hasSubs = rawHasSubs && !isFirstLevel;
                                                         const isExpanded = expandedGroups.has(groupKey);
                                                         const isSelected = selectedKRS.includes(group.main);
 
