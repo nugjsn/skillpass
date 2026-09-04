@@ -37,13 +37,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!isMockMode) {
             if (role === 'student' || !role) {
                 // Try production student login
-                const { data: student, error } = await supabase
+                const cleanUsername = username.trim();
+                const cleanPassword = password.trim();
+
+                const { data: students, error } = await supabase
                     .from('siswa')
-                    .select('*')
-                    .or(`nama.eq."${username}",nisn.eq."${username}"`)
-                    .eq('nisn', password)
                     .select('*, sekolah(nama_sekolah)')
-                    .maybeSingle();
+                    .or(`nama.ilike.${cleanUsername},nisn.eq.${cleanUsername}`)
+                    .eq('nisn', cleanPassword)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                const student = students && students.length > 0 ? students[0] : null;
                 
                 const studentData = student as any;
 
