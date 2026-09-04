@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { ArrowLeft, Trash2, Download, ChevronLeft, ChevronRight, LayoutGrid, ArrowUpCircle, ShieldAlert } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { supabase, isMockMode } from '../lib/supabase';
 import mockData from '../mocks/mockData';
 import type { Jurusan, LevelSkill, StudentListItem } from '../types';
@@ -22,6 +23,7 @@ interface JurusanDetailPageProps {
 
 export function JurusanDetailPage({ jurusan, onBack, classFilter }: JurusanDetailPageProps) {
   const { isTeacher, user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [levels, setLevels] = useState<LevelSkill[]>([]);
   const [students, setStudents] = useState<StudentListItem[]>([]);
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
@@ -536,18 +538,25 @@ export function JurusanDetailPage({ jurusan, onBack, classFilter }: JurusanDetai
   })();
 
   const handleExportExcel = () => {
-    const csvContent = [
-      ['Nama Siswa', 'Kelas', 'Skor', 'Badge', 'Level'],
-      ...filteredStudents.map((s) => [s.nama, formatClassLabel(jurusan.nama_jurusan, s.kelas), s.skor, s.badge_name, s.level_name]),
-    ]
-      .map((row) => row.join(','))
-      .join('\n');
+    const exportData = filteredStudents.map((s) => ({
+      'Nama': s.nama,
+      'NISN': s.nisn || '-',
+      'Kelas': formatClassLabel(jurusan.nama_jurusan, s.kelas),
+      'Skor': (s.skor !== undefined && s.skor !== null && s.skor > 0) ? s.skor : '-'
+    }));
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${jurusan.nama_jurusan} _students.csv`;
-    link.click();
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
+
+    ws['!cols'] = [
+      { wch: 35 }, // Nama
+      { wch: 15 }, // NISN
+      { wch: 15 }, // Kelas
+      { wch: 10 }, // Skor
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Data Siswa');
+    XLSX.writeFile(wb, `${jurusan.nama_jurusan}_students.xlsx`);
   };
 
   const handleExportPDF = () => {
@@ -835,7 +844,7 @@ export function JurusanDetailPage({ jurusan, onBack, classFilter }: JurusanDetai
                           <div />
                           {isTeacher && (
                             <div className="flex items-center gap-2">
-                              {activeTab !== 'all' && !['X', 'XI', 'XII'].includes(activeTab) && (
+                              {isAdmin && activeTab !== 'all' && !['X', 'XI', 'XII'].includes(activeTab) && (
                                 <button
                                   onClick={async () => {
                                     if (window.confirm(`PERINGATAN: Anda yakin ingin MENGHAPUS SELURUH SISWA di kelas ${activeTab}?\n\nData yang dihapus tidak dapat dikembalikan!`)) {
@@ -880,50 +889,52 @@ export function JurusanDetailPage({ jurusan, onBack, classFilter }: JurusanDetai
                                   <span>Hapus Kelas {activeTab}</span>
                                 </button>
                               )}
-                              <button
-                                onClick={async () => {
-                                  if (window.confirm(`PERINGATAN: Anda yakin ingin MENGHAPUS SEMUA data siswa di jurusan ${jurusan.nama_jurusan}?\n\nData yang dihapus tidak dapat dikembalikan!`)) {
-                                    if (!window.confirm("Apakah anda benar-benar yakin?")) return;
+                              {isAdmin && (
+                                <button
+                                  onClick={async () => {
+                                    if (window.confirm(`PERINGATAN: Anda yakin ingin MENGHAPUS SEMUA data siswa di jurusan ${jurusan.nama_jurusan}?\n\nData yang dihapus tidak dapat dikembalikan!`)) {
+                                      if (!window.confirm("Apakah anda benar-benar yakin?")) return;
 
-                                    try {
-                                      setLoading(true);
-                                      if (isMockMode) {
-                                        // Find all student IDs in this jurusan
-                                        const studentsToDelete = mockData.mockSiswa.filter(s => s.jurusan_id === jurusan.id).map(s => s.id);
+                                      try {
+                                        setLoading(true);
+                                        if (isMockMode) {
+                                          // Find all student IDs in this jurusan
+                                          const studentsToDelete = mockData.mockSiswa.filter(s => s.jurusan_id === jurusan.id).map(s => s.id);
 
-                                        // Delete in reverse loop to avoid index shifting issues
-                                        for (let i = mockData.mockSiswa.length - 1; i >= 0; i--) {
-                                          if (mockData.mockSiswa[i].jurusan_id === jurusan.id) {
-                                            mockData.mockSiswa.splice(i, 1);
+                                          // Delete in reverse loop to avoid index shifting issues
+                                          for (let i = mockData.mockSiswa.length - 1; i >= 0; i--) {
+                                            if (mockData.mockSiswa[i].jurusan_id === jurusan.id) {
+                                              mockData.mockSiswa.splice(i, 1);
+                                            }
                                           }
-                                        }
-                                        // Delete skills
-                                        for (let i = mockData.mockSkillSiswa.length - 1; i >= 0; i--) {
-                                          if (studentsToDelete.includes(mockData.mockSkillSiswa[i].siswa_id)) {
-                                            mockData.mockSkillSiswa.splice(i, 1);
+                                          // Delete skills
+                                          for (let i = mockData.mockSkillSiswa.length - 1; i >= 0; i--) {
+                                            if (studentsToDelete.includes(mockData.mockSkillSiswa[i].siswa_id)) {
+                                              mockData.mockSkillSiswa.splice(i, 1);
+                                            }
                                           }
+                                        } else {
+                                          const query = supabase.from('siswa').delete().eq('jurusan_id', jurusan.id);
+                                          if (user?.sekolah_id) query.eq('sekolah_id', user.sekolah_id);
+                                          const { error } = await query;
+                                          if (error) throw error;
                                         }
-                                      } else {
-                                        const query = supabase.from('siswa').delete().eq('jurusan_id', jurusan.id);
-                                        if (user?.sekolah_id) query.eq('sekolah_id', user.sekolah_id);
-                                        const { error } = await query;
-                                        if (error) throw error;
+                                        await loadData();
+                                        alert('Semua data siswa berhasil dihapus.');
+                                      } catch (err: any) {
+                                        console.error('Failed to delete all', err);
+                                        alert(`Gagal menghapus data: ${err.message || 'Error tidak diketahui'}. \n\nPastikan Anda memiliki izin akses di database.`);
+                                      } finally {
+                                        setLoading(false);
                                       }
-                                      await loadData();
-                                      alert('Semua data siswa berhasil dihapus.');
-                                    } catch (err: any) {
-                                      console.error('Failed to delete all', err);
-                                      alert(`Gagal menghapus data: ${err.message || 'Error tidak diketahui'}. \n\nPastikan Anda memiliki izin akses di database.`);
-                                    } finally {
-                                      setLoading(false);
                                     }
-                                  }
-                                }}
-                                className="px-3 py-1 bg-red-600 text-white rounded text-sm inline-flex items-center gap-2 hover:bg-red-700 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                <span>Hapus Semua</span>
-                              </button>
+                                  }}
+                                  className="px-3 py-1 bg-red-600 text-white rounded text-sm inline-flex items-center gap-2 hover:bg-red-700 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                  <span>Hapus Semua</span>
+                                </button>
+                              )}
                               <button
                                 onClick={handleNaikKelas}
                                 className="px-3 py-1 bg-emerald-600 text-white rounded text-sm inline-flex items-center gap-2 hover:bg-emerald-700 transition-colors"
@@ -944,7 +955,7 @@ export function JurusanDetailPage({ jurusan, onBack, classFilter }: JurusanDetai
                           onExportExcel={handleExportExcel}
                           onExportPDF={handleExportPDF}
                           onEditScore={isTeacher ? handleEditScore : undefined}
-                          onDelete={isTeacher ? async (s) => {
+                          onDelete={isAdmin ? async (s) => {
                             try {
                               setLoading(true);
                               // Delete logic

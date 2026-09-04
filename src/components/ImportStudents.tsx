@@ -301,6 +301,23 @@ export function ImportStudents({ jurusanId, onClose, onImported }: ImportStudent
     }
   }
 
+  function handleDownloadTemplate() {
+    const templateData = [
+      { 'Nama': 'ABBYMANYU JUNIOR PRANOTO', 'NISN': '0081821482', 'Kelas': 'XII ELIND 9', 'Skor': '-' },
+      { 'Nama': 'ABDURRAHMAN FAIZ FIRDAUS', 'NISN': '0099244248', 'Kelas': 'XII ELIND 9', 'Skor': '-' },
+    ];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    ws['!cols'] = [
+      { wch: 35 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 10 },
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, 'Template Import');
+    XLSX.writeFile(wb, 'Template_Import_Siswa.xlsx');
+  }
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 pb-32">
       <div className="card-glass w-full max-w-2xl rounded-xl shadow-2xl flex flex-col max-h-[85vh] border border-white/20">
@@ -311,6 +328,17 @@ export function ImportStudents({ jurusanId, onClose, onImported }: ImportStudent
 
         <div className="p-6 overflow-y-auto">
           <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-[color:var(--text-muted)]">Upload file Excel atau gunakan template</span>
+              <button
+                type="button"
+                onClick={handleDownloadTemplate}
+                className="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-semibold transition-colors"
+              >
+                <FileSpreadsheet className="w-4 h-4" /> Unduh Template Excel (.xlsx)
+              </button>
+            </div>
+
             <div>
               <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/20 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group">
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
