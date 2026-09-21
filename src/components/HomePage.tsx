@@ -53,7 +53,6 @@ export function HomePage({
   const [triggerRace, setTriggerRace] = useState(0);
 
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
-  const [pendingKRSCount, setPendingKRSCount] = useState(0);
   const [toApproveCount, setToApproveCount] = useState(0);
   const [showEvidenceModal, setShowEvidenceModal] = useState(false);
   const { updateUser } = useAuth();
@@ -270,8 +269,6 @@ export function HomePage({
     const toApprove = pendingItems.filter((s: KRSSubmission) => s.status !== 'scheduled');
 
     setToApproveCount(toApprove.length);
-    setPendingKRSCount(pendingItems.length);
-
   }
 
   const [scheduledExam, setScheduledExam] = useState<{ date: string, notes?: string } | null>(null);
@@ -572,10 +569,9 @@ export function HomePage({
                       >
                         <CheckCircle className="w-5 h-5 text-indigo-400" />
                         Verifikasi Sertifikasi
-                        {pendingKRSCount > 0 && (
-                          <div className={`absolute -top-1.5 -right-1.5 w-5 h-5 ${toApproveCount > 0 ? 'bg-red-500' : 'bg-emerald-500'
-                            } text-white text-[9px] font-black rounded-full flex items-center justify-center border border-[#0f172a] animate-bounce shadow-lg shadow-emerald-500/20`}>
-                            {pendingKRSCount}
+                        {toApproveCount > 0 && (
+                          <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center border border-[#0f172a] animate-bounce shadow-lg shadow-emerald-500/20">
+                            {toApproveCount}
                           </div>
                         )}
                         <div className="absolute inset-0 rounded-lg bg-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>

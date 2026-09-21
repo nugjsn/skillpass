@@ -36,6 +36,24 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
 
     const userRole = user.role;
 
+    // Format submission timestamp as "Senin, 21 September 2026 - 14:30"
+    const formatSubmittedAt = (dateStr?: string) => {
+        if (!dateStr) return null;
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return null;
+        const datePart = date.toLocaleDateString('id-ID', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        });
+        const timePart = date.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+        return `${datePart} - ${timePart} WIB`;
+    };
+
     // Helper to normalize class names (e.g., "12 TKR 3" vs "XII TKR 3")
     const normalizeClass = (name?: string) => {
         if (!name) return '';
@@ -437,6 +455,12 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
                                         <div className="flex-1 min-w-0">
                                             <div className="text-xs font-black text-[color:var(--accent-1)] uppercase mb-1 [.theme-clear_&]:text-emerald-600 truncate">{sub.kelas}</div>
                                             <h3 className="text-xl font-bold text-[color:var(--text-primary)] truncate" title={sub.siswa_nama}>{sub.siswa_nama}</h3>
+                                            {formatSubmittedAt(sub.submitted_at) && (
+                                                <div className="flex items-center gap-1.5 mt-1 text-[11px] text-slate-500 [.theme-clear_&]:text-slate-400">
+                                                    <Clock className="w-3 h-3 shrink-0" />
+                                                    <span className="truncate">Diajukan: {formatSubmittedAt(sub.submitted_at)}</span>
+                                                </div>
+                                            )}
                                         </div>
                                         {sub.status === 'scheduled' && (
                                             <div className="flex flex-col items-end gap-2 shrink-0">
@@ -566,6 +590,11 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
                                 <div>
                                     <h2 className="text-2xl font-black uppercase">Verifikasi Sertifikasi</h2>
                                     <p className="text-indigo-100 font-medium">{selectedSub.siswa_nama} — {selectedSub.kelas}</p>
+                                    {formatSubmittedAt(selectedSub.submitted_at) && (
+                                        <p className="text-indigo-200/80 text-xs font-medium mt-1">
+                                            Diajukan: {formatSubmittedAt(selectedSub.submitted_at)}
+                                        </p>
+                                    )}
                                 </div>
                                 <button
                                     onClick={() => setSelectedSub(null)}

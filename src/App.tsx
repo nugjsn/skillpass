@@ -332,6 +332,11 @@ function AppContent() {
     }
   };
 
+  // Only the jurusan actually matching the student's own jurusan_id is safe to submit a KRS
+  // under — falling back to jurusanList[0] would silently mis-attribute the submission to
+  // a different department (see supabase/fix_krs_jurusan_id_mekatronika_02.sql for the incident).
+  const studentJurusan = jurusanList.find(j => j.id === user?.jurusan_id);
+
   return (
     <div className="min-h-screen flex flex-col pb-20 sm:pb-0 transition-colors duration-300">
       <TopBar
@@ -451,11 +456,11 @@ function AppContent() {
         />
       )}
 
-      {showMissionModal && user && myStats && jurusanList.length > 0 && (
+      {showMissionModal && user && myStats && studentJurusan && (
         <MissionModal
           isOpen={showMissionModal}
           onClose={() => setShowMissionModal(false)}
-          jurusan={jurusanList.find(j => j.id === user.jurusan_id) || jurusanList[0]}
+          jurusan={studentJurusan}
           currentScore={myStats.score}
           currentPoin={myStats.poin}
           siswaId={myStats?.siswa_id || user.id}
