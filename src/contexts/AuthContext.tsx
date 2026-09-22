@@ -108,6 +108,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     return true;
                 }
             }
+            // Real Supabase mode: never fall back to the hardcoded mock/demo accounts below.
+            return false;
         }
 
         const authenticatedUser = authenticateUser(username, password, role);
