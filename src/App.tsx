@@ -142,7 +142,34 @@ function AppContent() {
       } else {
         const { data: levelsData } = await supabase.from('level_skill').select('*').order('urutan');
         const { data: jurData } = await supabase.from('jurusan').select('*');
-        setAllLevels(levelsData || []);
+
+        const lsjQuery = supabase.from('level_skill_jurusan').select('*').eq('jurusan_id', user.jurusan_id);
+        if (user?.sekolah_id) lsjQuery.eq('sekolah_id', user.sekolah_id);
+        const { data: lsjData } = await lsjQuery;
+
+        const enrichedLevels = (levelsData || []).map((l: any) => {
+          const ov = lsjData?.find((o: any) => o.level_id === l.id);
+          let criteria = l.criteria;
+          const hasilBelajar = ov?.hasil_belajar || l.hasil_belajar;
+
+          if (hasilBelajar) {
+            try {
+              if (typeof hasilBelajar === 'string' && hasilBelajar.trim().startsWith('[')) {
+                criteria = JSON.parse(hasilBelajar);
+              } else if (Array.isArray(hasilBelajar)) {
+                criteria = hasilBelajar;
+              } else if (typeof hasilBelajar === 'string') {
+                criteria = [hasilBelajar];
+              }
+            } catch (e) {
+              criteria = [hasilBelajar];
+            }
+          }
+
+          return { ...l, hasil_belajar: hasilBelajar, criteria } as LevelSkill;
+        });
+
+        setAllLevels(enrichedLevels);
         setJurusanList(jurData || []);
       }
 
@@ -440,6 +467,7 @@ function AppContent() {
         <StudentHistoryModal
           isOpen={showHistoryModal}
           onClose={() => setShowHistoryModal(false)}
+          studentId={myStats?.siswa_id || user.id}
           studentName={user.name}
           studentNisn={(user as any).nisn}
           studentKelas={myStats.className}

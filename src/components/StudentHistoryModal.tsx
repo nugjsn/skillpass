@@ -5,6 +5,7 @@ import { PassportBook } from './Passport/PassportBook';
 interface StudentHistoryModalProps {
     isOpen: boolean;
     onClose: () => void;
+    studentId: string;
     studentName: string;
     studentNisn?: string;
     studentKelas: string;
@@ -23,6 +24,7 @@ interface StudentHistoryModalProps {
 export const StudentHistoryModal: React.FC<StudentHistoryModalProps> = ({
     isOpen,
     onClose,
+    studentId,
     studentName,
     studentNisn,
     studentKelas,
@@ -41,7 +43,7 @@ export const StudentHistoryModal: React.FC<StudentHistoryModalProps> = ({
 
     // Construct a SiswaWithSkill object for the PassportBook
     const studentData: SiswaWithSkill = {
-        id: 'current-user', // wrapper id, not critical for display
+        id: studentId,
         nama: studentName,
         nisn: studentNisn,
         kelas: studentKelas,

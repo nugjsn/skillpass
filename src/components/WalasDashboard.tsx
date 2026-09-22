@@ -769,6 +769,7 @@ export function WalasDashboard({ user, onBack }: WalasDashboardProps) {
                 <StudentHistoryModal
                     isOpen={showHistoryModal}
                     onClose={() => setShowHistoryModal(false)}
+                    studentId={selectedStudent.id}
                     studentName={selectedStudent.nama}
                     studentNisn={selectedStudent.nisn}
                     studentKelas={selectedStudent.kelas}

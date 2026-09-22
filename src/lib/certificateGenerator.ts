@@ -1,7 +1,9 @@
 import { jsPDF } from 'jspdf';
+import QRCode from 'qrcode';
 
 
 export interface CertificateData {
+    studentId: string;
     studentName: string;
     nisn: string;
     kelas: string;
@@ -138,7 +140,30 @@ export const generateCertificate = async (data: CertificateData) => {
 
     doc.setFont('helvetica', 'bold');
     doc.text('Lispiyatmini, M.Pd', 40, sigY + 22, { align: 'center' });
-    doc.text('( ........................... )', pageWidth - 40, sigY + 22, { align: 'center' });
+    doc.text(data.penilai || '( ........................... )', pageWidth - 40, sigY + 22, { align: 'center' });
+
+    // QR Verification (replaces a physical signature/stamp - scan to confirm this cert
+    // matches a live record in the school's database)
+    try {
+        const verifyUrl = `${window.location.origin}?verify=${data.studentId}`;
+        const qrDataUrl = await QRCode.toDataURL(verifyUrl, {
+            width: 200,
+            margin: 0,
+            color: { dark: '#14163f', light: '#ffffff' },
+            errorCorrectionLevel: 'M'
+        });
+        const qrSize = 20;
+        const qrX = pageWidth / 2 - qrSize / 2;
+        const qrY = sigY - 3;
+        doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(70, 80, 110);
+        doc.text('Scan untuk verifikasi keaslian', pageWidth / 2, qrY + qrSize + 4, { align: 'center' });
+        doc.text('Scan to verify authenticity', pageWidth / 2, qrY + qrSize + 7.5, { align: 'center' });
+    } catch (e) {
+        console.error('QR generation error', e);
+    }
 
     // --- PAGE 2: COMPETENCY LIST ---
     doc.addPage();

@@ -1,6 +1,6 @@
 import React from 'react';
 import { PASSPORT_COLORS, PAGE_TEXTURE } from './PassportStyles';
-import { Fingerprint, Stamp, Image as ImageIcon, CheckCircle, Trophy } from 'lucide-react';
+import { Fingerprint, Stamp, Image as ImageIcon, CheckCircle, Trophy, GraduationCap, Download } from 'lucide-react';
 import type { SiswaWithSkill, CompetencyHistory, LevelSkill, StudentProject } from '../../types';
 
 
@@ -178,19 +178,33 @@ interface StampsPageProps {
     levels: LevelSkill[];
     onStampClick: (item: CompetencyHistory) => void;
     title?: string;
+    isLevelComplete?: boolean;
+    showLevelCertificateAction?: boolean;
+    onDownloadLevelCertificate?: () => void;
 }
 
-export const PassportStampsPage: React.FC<StampsPageProps> = ({ history, startIndex, itemsPerPage, pageNumber, levels, onStampClick, title }) => {
+export const PassportStampsPage: React.FC<StampsPageProps> = ({ history, startIndex, itemsPerPage, pageNumber, levels, onStampClick, title, isLevelComplete, showLevelCertificateAction, onDownloadLevelCertificate }) => {
     const pageItems = history.slice(startIndex, startIndex + itemsPerPage);
 
     return (
         <PassportPage pageNumber={pageNumber}>
             <div className="p-5 h-full">
-                <h3 className="text-center text-slate-400 text-xs font-bold uppercase mb-4 tracking-widest border-b border-slate-200 pb-2">
+                <h3 className="text-center text-slate-400 text-xs font-bold uppercase mb-2 tracking-widest border-b border-slate-200 pb-2">
                     {title || "Visa & Validasi Kompetensi"}
                 </h3>
 
-                <div className="grid grid-cols-2 gap-2 sm:gap-4 h-[350px] content-start">
+                {isLevelComplete && showLevelCertificateAction && (
+                    <button
+                        onClick={onDownloadLevelCertificate}
+                        className="w-full flex items-center justify-center gap-2 mb-3 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg text-emerald-700 transition-colors"
+                    >
+                        <GraduationCap size={14} />
+                        <span className="text-[10px] font-black uppercase tracking-wide">Level Selesai — Download Sertifikat</span>
+                        <Download size={12} />
+                    </button>
+                )}
+
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 h-[330px] content-start">
                     {pageItems.map((item, idx) => {
                         const level = levels.find(l => l.id === item.level_id);
                         const isLulus = item.hasil.toLowerCase() === 'lulus';
@@ -201,8 +215,7 @@ export const PassportStampsPage: React.FC<StampsPageProps> = ({ history, startIn
                             <button
                                 key={item.id}
                                 onClick={() => onStampClick(item)}
-                                disabled={!isLulus}
-                                className={`text-left aspect-[4/3] border-4 border-double ${color} p-2 rounded-lg ${rotate} opacity-90 hover:opacity-100 hover:scale-105 transition-all cursor-help relative group bg-white/50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500`}
+                                className={`text-left aspect-[4/3] border-4 border-double ${color} p-2 rounded-lg ${rotate} opacity-90 hover:opacity-100 hover:scale-105 transition-all cursor-pointer relative group bg-white/50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500`}
                             >
                                 <div className="absolute top-1 right-1">
                                     {isLulus ? <Stamp size={16} /> : null}
@@ -223,7 +236,9 @@ export const PassportStampsPage: React.FC<StampsPageProps> = ({ history, startIn
                                 {/* Tooltip */}
                                 <div className="absolute hidden group-hover:block z-50 bottom-full left-0 w-full bg-slate-800 text-white text-[10px] p-2 rounded shadow-xl mb-1 pointer-events-none">
                                     {item.unit_kompetensi} ({item.hasil})
-                                    {isLulus && <div className="mt-1 text-emerald-300">Klik untuk download sertifikat</div>}
+                                    <div className={`mt-1 ${isLulus ? 'text-emerald-300' : 'text-slate-300'}`}>
+                                        {isLulus ? 'Klik untuk download sertifikat' : 'Klik untuk lihat detail'}
+                                    </div>
                                 </div>
                             </button>
                         );

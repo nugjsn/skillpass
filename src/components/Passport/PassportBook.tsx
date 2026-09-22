@@ -6,6 +6,7 @@ import { PASSPORT_DIMENSIONS } from './PassportStyles';
 import type { SiswaWithSkill, LevelSkill, CompetencyHistory } from '../../types';
 import { generateCertificate } from '../../lib/certificateGenerator';
 import { getGradeColor } from '../../lib/gradingHelper';
+import { groupCriteria } from '../../lib/criteriaHelper';
 
 interface PassportBookProps {
     siswa: SiswaWithSkill;
@@ -48,6 +49,7 @@ export const PassportBook: React.FC<PassportBookProps> = ({ siswa, jurusanName, 
         const isLulus = selectedCompetency.hasil.toLowerCase() === 'lulus';
         if (isLulus) {
             generateCertificate({
+                studentId: siswa.id,
                 studentName: siswa.nama,
                 nisn: siswa.nisn || '-',
                 kelas: siswa.kelas,
@@ -60,6 +62,55 @@ export const PassportBook: React.FC<PassportBookProps> = ({ siswa, jurusanName, 
             });
         }
         setSelectedCompetency(null); // Close modal after download
+    };
+
+    // Build the set of criteria text the student has passed for a given level, using the
+    // same convention as TeacherKRSApproval/MissionModal (split unit_kompetensi on commas,
+    // trim, compare as exact strings).
+    const getPassedItemsForLevel = (levelId: string): Set<string> => {
+        const passedItems = new Set<string>();
+        history
+            .filter(h => h.level_id === levelId && h.hasil?.toLowerCase() === 'lulus')
+            .forEach(h => h.unit_kompetensi.split(',').forEach(item => passedItems.add(item.trim())));
+        return passedItems;
+    };
+
+    // A level counts as complete once every one of its criteria GROUPS has been passed.
+    // A group counts as passed if its main item was passed, OR (for levels where students
+    // pick a specialization sub-item instead, e.g. Beginner 2+) any of its sub-items was
+    // passed - mirroring the selection logic already used in MissionModal.
+    const isLevelComplete = (level: LevelSkill): boolean => {
+        if (!level.criteria || level.criteria.length === 0) return false;
+        const passedItems = getPassedItemsForLevel(level.id);
+        const groups = groupCriteria(level.criteria);
+        if (groups.length === 0) return false;
+        return groups.every(g =>
+            passedItems.has(g.main.trim()) || g.subs.some(s => passedItems.has(s.trim()))
+        );
+    };
+
+    const handleDownloadLevelCertificate = (level: LevelSkill) => {
+        const levelPassedHistory = history
+            .filter(h => h.level_id === level.id && h.hasil?.toLowerCase() === 'lulus')
+            .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+        const latest = levelPassedHistory[0];
+        if (!latest) return;
+
+        const groups = groupCriteria(level.criteria || []);
+        const mainCriteria = groups.map(g => g.main);
+
+        generateCertificate({
+            studentId: siswa.id,
+            studentName: siswa.nama,
+            nisn: siswa.nisn || '-',
+            kelas: siswa.kelas,
+            jurusan: jurusanName,
+            unitKompetensi: JSON.stringify(mainCriteria),
+            level: level.nama_level || 'Advanced',
+            tanggal: latest.tanggal,
+            penilai: latest.penilai,
+            hodName: hodName
+        });
     };
 
     // Get latest exam name for evidence description
@@ -90,6 +141,7 @@ export const PassportBook: React.FC<PassportBookProps> = ({ siswa, jurusanName, 
 
     sortedLevels.forEach(level => {
         const levelHistory = history.filter(h => h.level_id === level.id);
+        const levelComplete = isLevelComplete(level);
 
         // Calculate pages needed for this level (at least 1 page per level even if empty,
         // so students see their progress pathway and what's next).
@@ -106,6 +158,9 @@ export const PassportBook: React.FC<PassportBookProps> = ({ siswa, jurusanName, 
                     levels={levels}
                     onStampClick={handleStampClick}
                     title={level.nama_level?.toUpperCase()}
+                    isLevelComplete={levelComplete}
+                    showLevelCertificateAction={i === 0}
+                    onDownloadLevelCertificate={() => handleDownloadLevelCertificate(level)}
                 />
             );
         }
