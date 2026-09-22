@@ -213,7 +213,7 @@ export const SkillCard = ({ student, jurusanName, onClose }: Omit<SkillCardProps
                                 {currentYear}
                             </div>
                         </div>
-                        <div className="text-center mb-2">
+                        <div className="text-center mb-1">
                             <span className="text-[15px] font-black text-white [.theme-clear_&]:text-slate-900 tracking-[0.15em] uppercase drop-shadow-[0_0_10px_rgba(34,211,238,0.4)]">
                                 Skill Passport
                             </span>
@@ -222,7 +222,7 @@ export const SkillCard = ({ student, jurusanName, onClose }: Omit<SkillCardProps
                         {/* Content Area */}
                         <div className="flex-grow flex flex-col items-center">
                             {/* Avatar with Thick Neon Ring */}
-                            <div className="relative mb-2 scale-90">
+                            <div className="relative mb-1 scale-90">
                                 {/* Glow layers */}
                                 <div className="absolute inset-[-12px] rounded-full border border-cyan-400/10 blur-[4px]" />
                                 <div className="absolute inset-[-6px] rounded-full border-[6px] border-cyan-400 shadow-[0_0_50px_rgba(34,211,238,0.6)]" />
@@ -250,13 +250,13 @@ export const SkillCard = ({ student, jurusanName, onClose }: Omit<SkillCardProps
                             </div>
 
                             {/* Medal */}
-                            <div className="mt-1 transform scale-75">
+                            <div className="transform scale-[0.68]">
                                 <GoldMedal level={student.level_name} />
                             </div>
                         </div>
 
                         {/* QR Code Section - Now in Center */}
-                        <div className="flex-grow flex flex-col items-center justify-center -mt-6 mb-2">
+                        <div className="flex-grow flex flex-col items-center justify-center -mt-6 mb-1">
                             {qrCode ? (
                                 <div className="p-2 bg-white rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.4)] border-4 border-cyan-500/20 overflow-hidden transform hover:scale-105 transition-transform duration-300">
                                     <img src={qrCode} alt="QR" className="w-32 h-32 block grayscale-0" />
@@ -272,7 +272,7 @@ export const SkillCard = ({ student, jurusanName, onClose }: Omit<SkillCardProps
                         </div>
 
                         {/* Footer */}
-                        <div className="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
+                        <div className="mt-auto pt-3 border-t border-white/5 flex items-center justify-between">
                             <div className="flex flex-col">
                                 <span className="text-slate-500 [.theme-clear_&]:text-slate-400 text-[9px] font-black tracking-[0.2em] uppercase block">TECHNICAL PASSPORT</span>
                                 <span className="text-slate-700 [.theme-clear_&]:text-slate-500 text-[8px] font-mono font-bold opacity-60">ID: {student.id?.slice(0, 10).toUpperCase()}</span>
