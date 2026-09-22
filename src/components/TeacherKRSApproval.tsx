@@ -633,7 +633,6 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
                 <GradingModal
                     submission={gradingSub}
                     initialScore={currentScore}
-                    defaultExaminerName={user.name}
                     onClose={() => setGradingSub(null)}
                     onConfirm={handleGrading}
                 />

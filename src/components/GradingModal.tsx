@@ -228,7 +228,7 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0,
                                         placeholder="Ketik nama penguji..."
                                         className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white focus:border-indigo-500 transition-all outline-none text-sm [.theme-clear_&]:bg-white [.theme-clear_&]:border-slate-300 [.theme-clear_&]:text-slate-900"
                                     />
-                                    <p className="text-[10px] text-slate-500">Anda dapat mengubah nama ini jika penguji adalah pihak industri atau asesor lain.</p>
+                                    <p className="text-[10px] text-slate-500">Isi nama asli penguji (bukan nama akun), agar tercatat dengan benar di sertifikat siswa.</p>
                                 </div>
 
                                 <div className="space-y-3">
