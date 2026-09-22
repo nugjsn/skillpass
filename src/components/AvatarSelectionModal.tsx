@@ -9,48 +9,17 @@ interface AvatarSelectionModalProps {
     currentAvatar?: string;
 }
 
-const AVATAR_CATEGORIES = [
-    {
-        id: 'techie',
-        label: 'Techie',
-        icon: 'Cpu',
-        seeds: ['Felix', 'Casper', 'Midnight', 'Bear', 'Ziggy', 'Kobe'],
-        description: 'Mekanik & Ahli Teknologi'
-    },
-    {
-        id: 'professional',
-        label: 'Professional',
-        icon: 'Briefcase',
-        seeds: ['Vivian', 'Oliver', 'Willow', 'Leo', 'Piper'],
-        description: 'Bisnis & Perhotelan'
-    },
-    {
-        id: 'creator',
-        label: 'Creator',
-        icon: 'Palette',
-        seeds: ['Aneka', 'Luna', 'Sasha', 'Milo', 'Shadow'],
-        description: 'Pemikir Kreatif & Inovatif'
-    }
-];
-
 export const AvatarSelectionModal: React.FC<AvatarSelectionModalProps> = ({
     isOpen,
     onClose,
     onSelect,
     currentAvatar,
 }) => {
-    const [selectedSeed, setSelectedSeed] = useState<string | null>(null);
-    const [activeCategory, setActiveCategory] = useState(AVATAR_CATEGORIES[0].id);
     const [photoUrl, setPhotoUrl] = useState(currentAvatar || '');
-    const [mode, setMode] = useState<'avatar' | 'photo'>('avatar');
     const [isUploading, setIsUploading] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
 
-    const getAvatarUrl = (seed: string) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
-
     if (!isOpen) return null;
-
-    const filteredCategory = AVATAR_CATEGORIES.find(c => c.id === activeCategory);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -99,9 +68,7 @@ export const AvatarSelectionModal: React.FC<AvatarSelectionModalProps> = ({
     };
 
     const handleSave = () => {
-        if (mode === 'avatar' && selectedSeed) {
-            onSelect(getAvatarUrl(selectedSeed));
-        } else if (mode === 'photo' && photoUrl) {
+        if (photoUrl) {
             onSelect(photoUrl);
         }
     };
@@ -125,7 +92,7 @@ export const AvatarSelectionModal: React.FC<AvatarSelectionModalProps> = ({
                 <div className="flex items-center justify-between p-6 border-b border-white/5">
                     <div>
                         <h3 className="text-xl font-bold text-white [.theme-clear_&]:text-slate-900 flex items-center gap-2">
-                            <Icons.UserCircle className="w-5 h-5 text-[color:var(--accent-1)]" />
+                            <Icons.Camera className="w-5 h-5 text-[color:var(--accent-1)]" />
                             Update Foto Profil
                         </h3>
                         <p className="text-xs text-white/40 [.theme-clear_&]:text-slate-500 mt-1">Gunakan identitas nyata untuk pengalaman lebih profesional</p>
@@ -135,128 +102,54 @@ export const AvatarSelectionModal: React.FC<AvatarSelectionModalProps> = ({
                     </button>
                 </div>
 
-                {/* Primary Tabs: Avatar vs Photo */}
-                <div className="flex px-6 pt-6 gap-4">
-                    <button
-                        onClick={() => setMode('avatar')}
-                        className={`flex-1 py-3 rounded-2xl flex flex-col items-center gap-2 border-2 transition-all ${mode === 'avatar'
-                            ? 'bg-[color:var(--accent-1)]/10 border-[color:var(--accent-1)] text-[color:var(--accent-1)]'
-                            : 'bg-white/5 [.theme-clear_&]:bg-slate-100 border-transparent text-white/40 [.theme-clear_&]:text-slate-500 hover:bg-white/10 [.theme-clear_&]:hover:bg-slate-200'
-                            }`}
-                    >
-                        <Icons.User className="w-6 h-6" />
-                        <span className="text-xs font-bold uppercase tracking-wider">Pilih Avatar</span>
-                    </button>
-                    <button
-                        onClick={() => setMode('photo')}
-                        className={`flex-1 py-3 rounded-2xl flex flex-col items-center gap-2 border-2 transition-all ${mode === 'photo'
-                            ? 'bg-[color:var(--accent-1)]/10 border-[color:var(--accent-1)] text-[color:var(--accent-1)]'
-                            : 'bg-white/5 [.theme-clear_&]:bg-slate-100 border-transparent text-white/40 [.theme-clear_&]:text-slate-500 hover:bg-white/10 [.theme-clear_&]:hover:bg-slate-200'
-                            }`}
-                    >
-                        <Icons.Camera className="w-6 h-6" />
-                        <span className="text-xs font-bold uppercase tracking-wider">Gunakan Foto Asli</span>
-                    </button>
-                </div>
-
                 <div className="p-6">
-                    {mode === 'avatar' ? (
-                        <>
-                            {/* Categories Tabs */}
-                            <div className="flex gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
-                                {AVATAR_CATEGORIES.map((cat) => {
-                                    const Icon = (Icons as any)[cat.icon] || Icons.User;
-                                    const isActive = activeCategory === cat.id;
-                                    return (
-                                        <button
-                                            key={cat.id}
-                                            onClick={() => setActiveCategory(cat.id)}
-                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${isActive
-                                                ? 'bg-[color:var(--accent-1)] text-white shadow-lg shadow-[color:var(--accent-1)]/20'
-                                                : 'bg-white/5 [.theme-clear_&]:bg-slate-100 text-white/40 [.theme-clear_&]:text-slate-600 hover:bg-white/10 [.theme-clear_&]:hover:bg-slate-200 hover:text-white [.theme-clear_&]:hover:text-slate-900'
-                                                }`}
-                                        >
-                                            <Icon className="w-4 h-4" />
-                                            {cat.label}
-                                        </button>
-                                    );
-                                })}
+                    <div className="space-y-6 py-4">
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="relative w-32 h-32 rounded-full overflow-hidden bg-white/5 border-4 border-[color:var(--accent-1)]/20 flex items-center justify-center shadow-2xl">
+                                {isUploading ? (
+                                    <div className="flex flex-col items-center gap-2">
+                                        <Icons.Loader2 className="w-8 h-8 text-[color:var(--accent-1)] animate-spin" />
+                                        <span className="text-[10px] text-white/40 font-bold uppercase tracking-tighter">Uploading...</span>
+                                    </div>
+                                ) : photoUrl ? (
+                                    <img src={photoUrl} alt="Preview" className="w-full h-full object-cover" />
+                                ) : (
+                                    <Icons.ImagePlus className="w-12 h-12 text-white/20" />
+                                )}
                             </div>
-
-                            <div className="grid grid-cols-4 sm:grid-cols-5 gap-4 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
-                                {filteredCategory?.seeds.map((seed) => {
-                                    const url = getAvatarUrl(seed);
-                                    const isSelected = selectedSeed === seed || (currentAvatar === url && mode === 'avatar');
-
-                                    return (
-                                        <button
-                                            key={seed}
-                                            onClick={() => setSelectedSeed(seed)}
-                                            className={`relative group aspect-square rounded-2xl overflow-hidden transition-all duration-300 ${isSelected ? 'ring-4 ring-[color:var(--accent-1)] scale-95' : 'hover:bg-white/5 hover:scale-105'
-                                                }`}
-                                        >
-                                            <img src={url} alt={seed} className="w-full h-full object-cover" />
-                                            {isSelected && (
-                                                <div className="absolute inset-0 bg-[color:var(--accent-1)]/20 flex items-center justify-center">
-                                                    <div className="bg-[color:var(--accent-1)] text-white rounded-full p-1 shadow-lg">
-                                                        <Icons.Check className="w-4 h-4 font-black" />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </>
-                    ) : (
-                        <div className="space-y-6 py-4">
-                            <div className="flex flex-col items-center gap-4">
-                                <div className="relative w-32 h-32 rounded-full overflow-hidden bg-white/5 border-4 border-[color:var(--accent-1)]/20 flex items-center justify-center shadow-2xl">
-                                    {isUploading ? (
-                                        <div className="flex flex-col items-center gap-2">
-                                            <Icons.Loader2 className="w-8 h-8 text-[color:var(--accent-1)] animate-spin" />
-                                            <span className="text-[10px] text-white/40 font-bold uppercase tracking-tighter">Uploading...</span>
-                                        </div>
-                                    ) : photoUrl ? (
-                                        <img src={photoUrl} alt="Preview" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <Icons.ImagePlus className="w-12 h-12 text-white/20" />
-                                    )}
-                                </div>
-                                <p className="text-xs text-white/40 text-center max-w-xs">
-                                    Unggah foto asli Anda dari perangkat untuk identitas yang lebih personal.
-                                </p>
-                            </div>
-
-                            <div className="flex justify-center">
-                                <label className="flex items-center gap-3 px-6 py-4 bg-[color:var(--accent-1)] hover:opacity-90 text-white rounded-2xl font-bold transition-all transform active:scale-95 cursor-pointer shadow-lg shadow-[color:var(--accent-1)]/20">
-                                    <Icons.Upload className="w-5 h-5" />
-                                    <span>Pilih File Foto</span>
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleFileUpload}
-                                        disabled={isUploading}
-                                        className="hidden"
-                                    />
-                                </label>
-                            </div>
-
-                            {uploadError && (
-                                <div className="flex items-center gap-2 text-rose-500 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20 animate-shake">
-                                    <Icons.XCircle className="w-4 h-4" />
-                                    <p className="text-xs font-bold">{uploadError}</p>
-                                </div>
-                            )}
-
-                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex gap-3">
-                                <Icons.AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
-                                <p className="text-[11px] text-amber-200/70 leading-relaxed">
-                                    **Penting:** Ukuran file maksimal adalah **500KB**. Pastikan foto terlihat jelas dan profesional.
-                                </p>
-                            </div>
+                            <p className="text-xs text-white/40 text-center max-w-xs">
+                                Unggah foto asli Anda dari perangkat untuk identitas yang lebih personal.
+                            </p>
                         </div>
-                    )}
+
+                        <div className="flex justify-center">
+                            <label className="flex items-center gap-3 px-6 py-4 bg-[color:var(--accent-1)] hover:opacity-90 text-white rounded-2xl font-bold transition-all transform active:scale-95 cursor-pointer shadow-lg shadow-[color:var(--accent-1)]/20">
+                                <Icons.Upload className="w-5 h-5" />
+                                <span>Pilih File Foto</span>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileUpload}
+                                    disabled={isUploading}
+                                    className="hidden"
+                                />
+                            </label>
+                        </div>
+
+                        {uploadError && (
+                            <div className="flex items-center gap-2 text-rose-500 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20 animate-shake">
+                                <Icons.XCircle className="w-4 h-4" />
+                                <p className="text-xs font-bold">{uploadError}</p>
+                            </div>
+                        )}
+
+                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex gap-3">
+                            <Icons.AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                            <p className="text-[11px] text-amber-200/70 leading-relaxed">
+                                **Penting:** Ukuran file maksimal adalah **500KB**. Pastikan foto terlihat jelas dan profesional.
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="p-6 border-t border-white/5 [.theme-clear_&]:border-slate-200 bg-slate-900/50 [.theme-clear_&]:bg-slate-50 flex gap-3">
@@ -268,7 +161,7 @@ export const AvatarSelectionModal: React.FC<AvatarSelectionModalProps> = ({
                     </button>
                     <button
                         onClick={handleSave}
-                        disabled={isUploading || (mode === 'avatar' && !selectedSeed) || (mode === 'photo' && !photoUrl)}
+                        disabled={isUploading || !photoUrl}
                         className="flex-2 py-4 px-8 bg-[color:var(--accent-1)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-2xl font-bold shadow-lg shadow-[color:var(--accent-1)]/20 transition-all transform active:scale-95 text-sm"
                     >
                         {isUploading ? 'Menyimpan...' : 'Simpan Perubahan'}

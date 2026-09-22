@@ -207,11 +207,16 @@ export const SkillCard = ({ student, jurusanName, onClose }: Omit<SkillCardProps
 
                     <div className="relative z-10 h-full flex flex-col p-5">
                         {/* Header */}
-                        <div className="flex justify-between items-start mb-2">
+                        <div className="flex justify-between items-start mb-1">
                             <img src="/logo.png" alt="Logo" className="w-12 h-12 object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] logo-adaptive" />
                             <div className="text-[14px] font-black text-white/90 [.theme-clear_&]:text-slate-800 tracking-tighter leading-none pt-2 opacity-80">
                                 {currentYear}
                             </div>
+                        </div>
+                        <div className="text-center mb-2">
+                            <span className="text-[15px] font-black text-white [.theme-clear_&]:text-slate-900 tracking-[0.15em] uppercase drop-shadow-[0_0_10px_rgba(34,211,238,0.4)]">
+                                Skill Passport
+                            </span>
                         </div>
 
                         {/* Content Area */}

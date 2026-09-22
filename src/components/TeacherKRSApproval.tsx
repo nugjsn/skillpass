@@ -24,6 +24,7 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
     const [currentScore, setCurrentScore] = useState<number>(80);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [passedItems, setPassedItems] = useState<Set<string>>(new Set());
+    const [groupBy, setGroupBy] = useState<'none' | 'kelas' | 'kriteria'>('none');
     const [lastActionResult, setLastActionResult] = useState<{
         type: 'scheduled' | 'graded',
         name: string,
@@ -53,6 +54,27 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
         });
         return `${datePart} - ${timePart} WIB`;
     };
+
+    // Human-readable label for a submission's chosen criteria, used as its grouping key
+    const criteriaLabel = (sub: KRSSubmission) => {
+        const cleaned = sub.items.map(item =>
+            (isSubItem(item) ? cleanSubItemText(item) : item).replace(/\*\*/g, '').trim()
+        ).filter(Boolean);
+        return cleaned.join(', ') || 'Tanpa Kriteria';
+    };
+
+    const groupedSubmissions = (() => {
+        if (groupBy === 'none') return [{ label: null as string | null, items: submissions }];
+        const map = new Map<string, KRSSubmission[]>();
+        submissions.forEach(sub => {
+            const key = groupBy === 'kelas' ? (sub.kelas || 'Tanpa Kelas') : criteriaLabel(sub);
+            if (!map.has(key)) map.set(key, []);
+            map.get(key)!.push(sub);
+        });
+        return Array.from(map.entries())
+            .sort((a, b) => a[0].localeCompare(b[0], 'id'))
+            .map(([label, items]) => ({ label, items }));
+    })();
 
     // Helper to normalize class names (e.g., "12 TKR 3" vs "XII TKR 3")
     const normalizeClass = (name?: string) => {
@@ -388,29 +410,52 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
                 )}
 
                 {/* Tab Navigation */}
-                <div className="flex bg-[color:var(--glass)] border border-white/10 p-1.5 rounded-2xl w-fit [.theme-clear_&]:bg-slate-200/50 [.theme-clear_&]:border-slate-300">
-                    <button
-                        onClick={() => setActiveTab('pending')}
-                        className={`px-8 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${activeTab === 'pending'
-                            ? 'bg-[color:var(--accent-1)] text-white shadow-lg'
-                            : 'text-[color:var(--text-muted)] hover:text-[color:var(--text-primary)]'
-                            }`}
-                    >
-                        <Clock className="w-4 h-4" />
-                        Pengajuan
-                    </button>
-                    {['teacher_produktif', 'hod', 'admin', 'teacher'].includes(userRole) && (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex bg-[color:var(--glass)] border border-white/10 p-1.5 rounded-2xl w-fit [.theme-clear_&]:bg-slate-200/50 [.theme-clear_&]:border-slate-300">
                         <button
-                            onClick={() => setActiveTab('grading')}
-                            className={`px-8 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${activeTab === 'grading'
+                            onClick={() => setActiveTab('pending')}
+                            className={`px-8 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${activeTab === 'pending'
                                 ? 'bg-[color:var(--accent-1)] text-white shadow-lg'
                                 : 'text-[color:var(--text-muted)] hover:text-[color:var(--text-primary)]'
                                 }`}
                         >
-                            <Award className="w-4 h-4" />
-                            Penilaian Ujian
+                            <Clock className="w-4 h-4" />
+                            Pengajuan
                         </button>
-                    )}
+                        {['teacher_produktif', 'hod', 'admin', 'teacher'].includes(userRole) && (
+                            <button
+                                onClick={() => setActiveTab('grading')}
+                                className={`px-8 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${activeTab === 'grading'
+                                    ? 'bg-[color:var(--accent-1)] text-white shadow-lg'
+                                    : 'text-[color:var(--text-muted)] hover:text-[color:var(--text-primary)]'
+                                    }`}
+                            >
+                                <Award className="w-4 h-4" />
+                                Penilaian Ujian
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Grouping toggle */}
+                    <div className="flex items-center gap-2 bg-[color:var(--glass)] border border-white/10 p-1.5 rounded-2xl w-fit [.theme-clear_&]:bg-slate-200/50 [.theme-clear_&]:border-slate-300">
+                        <span className="pl-2 pr-1 text-[10px] font-black uppercase tracking-wider text-[color:var(--text-muted)]">Kelompokkan:</span>
+                        {([
+                            { key: 'none', label: 'Semua' },
+                            { key: 'kelas', label: 'Per Kelas' },
+                            { key: 'kriteria', label: 'Per Kriteria' },
+                        ] as const).map(opt => (
+                            <button
+                                key={opt.key}
+                                onClick={() => setGroupBy(opt.key)}
+                                className={`px-4 py-2 rounded-xl font-bold text-xs transition-all ${groupBy === opt.key
+                                    ? 'bg-[color:var(--accent-1)] text-white shadow-lg'
+                                    : 'text-[color:var(--text-muted)] hover:text-[color:var(--text-primary)]'
+                                    }`}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {loading ? (
@@ -426,10 +471,20 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
                         <p className="text-[color:var(--text-muted)]/60">Terima kasih atas dedikasi Anda.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {submissions.map((sub: KRSSubmission) => (
-                            <div
-                                key={sub.id}
+                    <div className="space-y-10">
+                        {groupedSubmissions.map((group) => (
+                            <div key={group.label ?? 'all'}>
+                                {group.label && (
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <h3 className="text-sm font-black uppercase tracking-wider text-[color:var(--text-primary)]">{group.label}</h3>
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[color:var(--accent-1)]/10 text-[color:var(--accent-1)]">{group.items.length}</span>
+                                        <div className="flex-1 h-px bg-white/10 [.theme-clear_&]:bg-slate-200" />
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {group.items.map((sub: KRSSubmission) => (
+                                        <div
+                                            key={sub.id}
                                 className={`card-glass border ${selectedIds.includes(sub.id) ? 'border-indigo-500 bg-indigo-500/5' : 'border-white/6'} rounded-2xl p-6 hover:border-[color:var(--accent-1)]/50 transition-all group relative overflow-hidden [.theme-clear_&]:border-slate-200 [.theme-clear_&]:shadow-sm`}
                             >
                                 {activeTab === 'pending' && userRole !== 'wali_kelas' && (
@@ -520,8 +575,11 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
                                             : 'bg-[color:var(--accent-1)] text-white hover:opacity-90'
                                             }`}
                                     >
-                                        {activeTab === 'pending' ? (userRole === 'wali_kelas' ? 'Lihat Detail' : 'Review Pengajuan') : 'Input Nilai Ujian'}
-                                    </button>
+                                                {activeTab === 'pending' ? (userRole === 'wali_kelas' ? 'Lihat Detail' : 'Review Pengajuan') : 'Input Nilai Ujian'}
+                                            </button>
+                                        </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         ))}
