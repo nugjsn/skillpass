@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Jurusan, RaceParticipant, StudentStats } from '../types';
+import type { Jurusan, RaceParticipant, StudentStats, LevelSkill } from '../types';
 import { Podium } from './Podium';
 import { StudentXPBar } from './StudentXPBar';
 import { AvatarSelectionModal } from './AvatarSelectionModal';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase, isMockMode } from '../lib/supabase';
+import mockData from '../mocks/mockData';
 import * as Icons from 'lucide-react';
 
 interface DashboardRaceProps {
@@ -38,6 +40,56 @@ export function DashboardRace({ jurusanData, trigger = 0, myStats, showCompetiti
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [selectedKRS, setSelectedKRS] = useState<string[]>([]);
     const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+    const [levels, setLevels] = useState<LevelSkill[]>([]);
+    const [expandedJurusanId, setExpandedJurusanId] = useState<string | null>(null);
+    const [levelBreakdown, setLevelBreakdown] = useState<Record<string, { level: LevelSkill; count: number }[]>>({});
+    const [loadingBreakdownId, setLoadingBreakdownId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const loadLevels = async () => {
+            if (isMockMode) {
+                setLevels(mockData.mockLevels);
+            } else {
+                const { data } = await supabase.from('level_skill').select('*').order('urutan');
+                setLevels(data || []);
+            }
+        };
+        loadLevels();
+    }, []);
+
+    const toggleJurusanBreakdown = async (jurusanId: string) => {
+        if (expandedJurusanId === jurusanId) {
+            setExpandedJurusanId(null);
+            return;
+        }
+        setExpandedJurusanId(jurusanId);
+        if (levelBreakdown[jurusanId] || levels.length === 0) return;
+
+        setLoadingBreakdownId(jurusanId);
+        try {
+            let scores: number[] = [];
+            if (isMockMode) {
+                const siswaIds = mockData.mockSiswa.filter(s => s.jurusan_id === jurusanId).map(s => s.id);
+                scores = mockData.mockSkillSiswa.filter(sk => siswaIds.includes(sk.siswa_id)).map(sk => sk.skor || 0);
+            } else {
+                const query = supabase
+                    .from('skill_siswa')
+                    .select('skor, siswa!inner(jurusan_id, sekolah_id)')
+                    .eq('siswa.jurusan_id', jurusanId);
+                if (user?.sekolah_id) query.eq('siswa.sekolah_id', user.sekolah_id);
+                const { data } = await query;
+                scores = (data || []).map((d: any) => d.skor || 0);
+            }
+
+            const breakdown = levels.map(level => ({
+                level,
+                count: scores.filter(s => s >= level.min_skor && s <= level.max_skor).length
+            }));
+            setLevelBreakdown(prev => ({ ...prev, [jurusanId]: breakdown }));
+        } finally {
+            setLoadingBreakdownId(null);
+        }
+    };
 
     useEffect(() => {
         const loadKRS = () => {
@@ -260,26 +312,69 @@ export function DashboardRace({ jurusanData, trigger = 0, myStats, showCompetiti
                                     {participants.length > 0 ? (
                                         participants.map((p, idx) => {
                                             const IconComponent = (Icons as any)[sortedData[idx].jurusan.icon] || Icons.GraduationCap;
+                                            const isExpanded = expandedJurusanId === p.id;
+                                            const breakdown = levelBreakdown[p.id];
+                                            const isLoadingBreakdown = loadingBreakdownId === p.id;
                                             return (
-                                                <div key={p.id} className="flex items-center justify-between p-4 bg-white dark:bg-white/5 rounded-xl border border-slate-300 dark:border-white/5 shadow-sm hover:shadow-md hover:border-indigo-500/30 transition-all group">
-                                                    <div className="flex items-center gap-6">
-                                                        <div className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-lg ${idx === 0 ? 'bg-yellow-400 text-black shadow-[0_0_15px_rgba(250,204,21,0.5)]' : idx === 1 ? 'bg-gray-300 text-black' : idx === 2 ? 'bg-orange-400 text-black' : 'bg-black/10 dark:bg-white/10 text-gray-500 dark:text-white/50'}`}>
-                                                            {idx + 1}
+                                                <div key={p.id} className="rounded-xl border border-slate-300 dark:border-white/5 overflow-hidden">
+                                                    <button
+                                                        onClick={() => toggleJurusanBreakdown(p.id)}
+                                                        className="w-full flex items-center justify-between p-4 bg-white dark:bg-white/5 shadow-sm hover:shadow-md hover:border-indigo-500/30 transition-all group text-left"
+                                                    >
+                                                        <div className="flex items-center gap-6">
+                                                            <div className={`w-10 h-10 flex items-center justify-center rounded-full font-black text-lg ${idx === 0 ? 'bg-yellow-400 text-black shadow-[0_0_15px_rgba(250,204,21,0.5)]' : idx === 1 ? 'bg-gray-300 text-black' : idx === 2 ? 'bg-orange-400 text-black' : 'bg-black/10 dark:bg-white/10 text-gray-500 dark:text-white/50'}`}>
+                                                                {idx + 1}
+                                                            </div>
+                                                            <div className="flex items-center gap-4">
+                                                                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colorPalette[idx % colorPalette.length]} flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform`}>
+                                                                    <IconComponent className="w-5 h-5 text-white" />
+                                                                </div>
+                                                                <div>
+                                                                    <div className="font-bold text-lg">{p.name}</div>
+                                                                    <div className="text-sm subtle">{p.label}</div>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                         <div className="flex items-center gap-4">
-                                                            <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${colorPalette[idx % colorPalette.length]} flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform`}>
-                                                                <IconComponent className="w-5 h-5 text-white" />
+                                                            <div className="text-right">
+                                                                <div className="text-2xl font-black">{p.score.toFixed(1)}</div>
+                                                                <div className="text-xs subtle font-mono">AVG SKOR</div>
                                                             </div>
-                                                            <div>
-                                                                <div className="font-bold text-lg">{p.name}</div>
-                                                                <div className="text-sm subtle">{p.label}</div>
-                                                            </div>
+                                                            <Icons.ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                                                         </div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className="text-2xl font-black">{p.score.toFixed(1)}</div>
-                                                        <div className="text-xs subtle font-mono">AVG SKOR</div>
-                                                    </div>
+                                                    </button>
+
+                                                    <AnimatePresence>
+                                                        {isExpanded && (
+                                                            <motion.div
+                                                                initial={{ height: 0, opacity: 0 }}
+                                                                animate={{ height: 'auto', opacity: 1 }}
+                                                                exit={{ height: 0, opacity: 0 }}
+                                                                transition={{ duration: 0.25 }}
+                                                                className="overflow-hidden bg-black/5 dark:bg-black/20 border-t border-slate-300 dark:border-white/5"
+                                                            >
+                                                                <div className="p-4">
+                                                                    <div className="text-xs font-black uppercase tracking-widest subtle mb-3">Siswa per Level</div>
+                                                                    {isLoadingBreakdown ? (
+                                                                        <div className="flex justify-center py-6">
+                                                                            <div className="w-6 h-6 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+                                                                        </div>
+                                                                    ) : breakdown && breakdown.length > 0 ? (
+                                                                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                                                                            {breakdown.map(({ level, count }) => (
+                                                                                <div key={level.id} className="p-3 rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-center">
+                                                                                    <div className="text-xl font-black" style={{ color: level.badge_color || undefined }}>{count}</div>
+                                                                                    <div className="text-[10px] font-bold subtle uppercase tracking-tight leading-tight mt-1">{level.nama_level}</div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <p className="text-sm subtle italic">Belum ada data skor siswa untuk jurusan ini.</p>
+                                                                    )}
+                                                                </div>
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
                                                 </div>
                                             );
                                         })
