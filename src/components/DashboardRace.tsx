@@ -42,7 +42,9 @@ export function DashboardRace({ jurusanData, trigger = 0, myStats, showCompetiti
     const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
     const [levels, setLevels] = useState<LevelSkill[]>([]);
     const [expandedJurusanId, setExpandedJurusanId] = useState<string | null>(null);
-    const [levelBreakdown, setLevelBreakdown] = useState<Record<string, { level: LevelSkill; count: number }[]>>({});
+    const [expandedLevelId, setExpandedLevelId] = useState<string | null>(null);
+    type LevelStudent = { id: string; nama: string; kelas?: string; skor: number };
+    const [levelBreakdown, setLevelBreakdown] = useState<Record<string, { level: LevelSkill; count: number; students: LevelStudent[] }[]>>({});
     const [loadingBreakdownId, setLoadingBreakdownId] = useState<string | null>(null);
 
     useEffect(() => {
@@ -60,31 +62,43 @@ export function DashboardRace({ jurusanData, trigger = 0, myStats, showCompetiti
     const toggleJurusanBreakdown = async (jurusanId: string) => {
         if (expandedJurusanId === jurusanId) {
             setExpandedJurusanId(null);
+            setExpandedLevelId(null);
             return;
         }
         setExpandedJurusanId(jurusanId);
+        setExpandedLevelId(null);
         if (levelBreakdown[jurusanId] || levels.length === 0) return;
 
         setLoadingBreakdownId(jurusanId);
         try {
-            let scores: number[] = [];
+            let studentScores: LevelStudent[] = [];
             if (isMockMode) {
-                const siswaIds = mockData.mockSiswa.filter(s => s.jurusan_id === jurusanId).map(s => s.id);
-                scores = mockData.mockSkillSiswa.filter(sk => siswaIds.includes(sk.siswa_id)).map(sk => sk.skor || 0);
+                const siswaInJurusan = mockData.mockSiswa.filter(s => s.jurusan_id === jurusanId);
+                studentScores = siswaInJurusan.map(s => {
+                    const sk = mockData.mockSkillSiswa.find(ss => ss.siswa_id === s.id);
+                    return { id: s.id, nama: s.nama, kelas: s.kelas, skor: sk?.skor || 0 };
+                });
             } else {
                 const query = supabase
                     .from('skill_siswa')
-                    .select('skor, siswa!inner(jurusan_id, sekolah_id)')
+                    .select('skor, siswa!inner(id, nama, kelas, jurusan_id, sekolah_id)')
                     .eq('siswa.jurusan_id', jurusanId);
                 if (user?.sekolah_id) query.eq('siswa.sekolah_id', user.sekolah_id);
                 const { data } = await query;
-                scores = (data || []).map((d: any) => d.skor || 0);
+                studentScores = (data || []).map((d: any) => ({
+                    id: d.siswa?.id ?? '',
+                    nama: d.siswa?.nama ?? 'N/A',
+                    kelas: d.siswa?.kelas,
+                    skor: d.skor || 0
+                }));
             }
 
-            const breakdown = levels.map(level => ({
-                level,
-                count: scores.filter(s => s >= level.min_skor && s <= level.max_skor).length
-            }));
+            const breakdown = levels.map(level => {
+                const students = studentScores
+                    .filter(s => s.skor >= level.min_skor && s.skor <= level.max_skor)
+                    .sort((a, b) => b.skor - a.skor);
+                return { level, count: students.length, students };
+            });
             setLevelBreakdown(prev => ({ ...prev, [jurusanId]: breakdown }));
         } finally {
             setLoadingBreakdownId(null);
@@ -359,15 +373,58 @@ export function DashboardRace({ jurusanData, trigger = 0, myStats, showCompetiti
                                                                         <div className="flex justify-center py-6">
                                                                             <div className="w-6 h-6 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
                                                                         </div>
-                                                                    ) : breakdown && breakdown.length > 0 ? (
-                                                                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                                                                            {breakdown.map(({ level, count }) => (
-                                                                                <div key={level.id} className="p-3 rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-center">
-                                                                                    <div className="text-xl font-black" style={{ color: level.badge_color || undefined }}>{count}</div>
-                                                                                    <div className="text-[10px] font-bold subtle uppercase tracking-tight leading-tight mt-1">{level.nama_level}</div>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
+                                                    ) : breakdown && breakdown.length > 0 ? (
+                                                                        <>
+                                                                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                                                                                {breakdown.map(({ level, count }) => {
+                                                                                    const isLevelOpen = expandedLevelId === level.id;
+                                                                                    return (
+                                                                                        <button
+                                                                                            key={level.id}
+                                                                                            onClick={() => setExpandedLevelId(isLevelOpen ? null : level.id)}
+                                                                                            disabled={count === 0}
+                                                                                            className={`p-3 rounded-lg bg-white dark:bg-white/5 border text-center transition-all ${isLevelOpen ? 'border-indigo-500 ring-1 ring-indigo-500' : 'border-slate-200 dark:border-white/10'} ${count > 0 ? 'hover:border-indigo-500/50 cursor-pointer' : 'opacity-50 cursor-default'}`}
+                                                                                        >
+                                                                                            <div className="text-xl font-black" style={{ color: level.badge_color || undefined }}>{count}</div>
+                                                                                            <div className="text-[10px] font-bold subtle uppercase tracking-tight leading-tight mt-1">{level.nama_level}</div>
+                                                                                        </button>
+                                                                                    );
+                                                                                })}
+                                                                            </div>
+
+                                                                            <AnimatePresence>
+                                                                                {expandedLevelId && (() => {
+                                                                                    const activeLevel = breakdown.find(b => b.level.id === expandedLevelId);
+                                                                                    if (!activeLevel) return null;
+                                                                                    return (
+                                                                                        <motion.div
+                                                                                            initial={{ height: 0, opacity: 0 }}
+                                                                                            animate={{ height: 'auto', opacity: 1 }}
+                                                                                            exit={{ height: 0, opacity: 0 }}
+                                                                                            transition={{ duration: 0.2 }}
+                                                                                            className="overflow-hidden"
+                                                                                        >
+                                                                                            <div className="mt-3 p-3 rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10">
+                                                                                                <div className="text-xs font-black uppercase tracking-widest subtle mb-2">
+                                                                                                    Siswa di {activeLevel.level.nama_level} ({activeLevel.students.length})
+                                                                                                </div>
+                                                                                                <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                                                                                                    {activeLevel.students.map(s => (
+                                                                                                        <div key={s.id} className="flex items-center justify-between px-3 py-2 rounded-md bg-black/5 dark:bg-black/20 text-sm">
+                                                                                                            <div className="min-w-0">
+                                                                                                                <div className="font-bold truncate">{s.nama}</div>
+                                                                                                                <div className="text-xs subtle">{s.kelas || '-'}</div>
+                                                                                                            </div>
+                                                                                                            <div className="font-mono font-bold shrink-0 ml-3">{s.skor}</div>
+                                                                                                        </div>
+                                                                                                    ))}
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        </motion.div>
+                                                                                    );
+                                                                                })()}
+                                                                            </AnimatePresence>
+                                                                        </>
                                                                     ) : (
                                                                         <p className="text-sm subtle italic">Belum ada data skor siswa untuk jurusan ini.</p>
                                                                     )}
