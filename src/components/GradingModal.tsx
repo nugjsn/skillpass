@@ -5,12 +5,19 @@ import { supabase, isMockMode } from '../lib/supabase';
 import mockData from '../mocks/mockData';
 import { groupCriteria } from '../lib/criteriaHelper';
 
+export interface GradedCriterionResult {
+    item: string;
+    score: number;
+    result: 'Lulus' | 'Tidak Lulus';
+}
+
 interface GradingModalProps {
     submission: KRSSubmission;
     onClose: () => void;
-    // Updated signature to include earnedXP, examinerName, and the criteria left ungraded
-    // (non-empty when the teacher only grades a subset now; the rest stays "scheduled" for later)
-    onConfirm: (score: number, earnedXP: number, result: 'Lulus' | 'Tidak Lulus', notes: string, examinerName: string, gradedItems: string[], remainingItems: string[]) => void;
+    // Each criterion gets its own score and its own Lulus/Tidak Lulus verdict - they are
+    // NEVER averaged together, so one failing criterion can't be masked by a passing one
+    // (and vice versa). `remainingItems` holds criteria deferred to a later session.
+    onConfirm: (gradedResults: GradedCriterionResult[], earnedXP: number, notes: string, examinerName: string, remainingItems: string[]) => void;
     initialScore?: number;
     defaultExaminerName?: string;
 }
@@ -110,22 +117,19 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0,
     const maxXPPerCriterion = levelRange / numTotalLevelCriteria;
 
     let totalXP = 0;
-    let sumScore = 0;
 
     criteriaGroups.forEach((_, idx) => {
         if (!isIncluded(idx)) return;
         const s = scores[idx] || 0;
-        sumScore += s;
         if (s >= 75) {
             totalXP += maxXPPerCriterion;
         }
     });
 
-    const averageScore = includedCount > 0 ? Math.round(sumScore / includedCount) : 0;
-    // If average is >= 75 and ALL items are >= 75, result is Lulus.
-    // Usually if totalXP > 0 it means at least partially passed.
-    // We'll let the overall result be 'Lulus' if average >= 75 for simplicity, or we can enforce all must be 75.
-    const isLulus = averageScore >= 75;
+    // The actual saved verdicts are always per-criterion (see gradedResults in
+    // handleConfirm below), never averaged into one combined Lulus/Tidak Lulus.
+    const passCount = criteriaGroups.reduce((acc, _, idx) => acc + (isIncluded(idx) && (scores[idx] || 0) >= 75 ? 1 : 0), 0);
+    const failCount = includedCount - passCount;
 
     const handleConfirm = async () => {
         if (includedCount === 0) {
@@ -148,13 +152,24 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0,
 
         try {
             setIsSaving(true);
-            const resultStatus = isLulus ? 'Lulus' : 'Tidak Lulus';
             // Round totalXP to 2 decimal places to avoid floating point precision issues, then floor it to whole number or keep decimal?
             // DB skill_siswa.skor is integer usually, we should round it.
             const roundedXP = Math.round(totalXP);
-            const gradedItems = criteriaGroups.flatMap((g, idx) => isIncluded(idx) ? [g.main, ...g.subs] : []);
+            // Each included criterion is judged and recorded on ITS OWN score - never averaged
+            // with the others - so a failing criterion can't be dragged to "Lulus" by a passing one.
+            const gradedResults: GradedCriterionResult[] = criteriaGroups
+                .map((g, idx) => ({ g, idx }))
+                .filter(({ idx }) => isIncluded(idx))
+                .map(({ g, idx }) => {
+                    const s = scores[idx] || 0;
+                    return {
+                        item: [g.main, ...g.subs].join(', '),
+                        score: s,
+                        result: (s >= 75 ? 'Lulus' : 'Tidak Lulus') as 'Lulus' | 'Tidak Lulus'
+                    };
+                });
             const remainingItems = criteriaGroups.flatMap((g, idx) => isIncluded(idx) ? [] : [g.main, ...g.subs]);
-            await onConfirm(averageScore, roundedXP, resultStatus, notes, examinerName, gradedItems, remainingItems);
+            await onConfirm(gradedResults, roundedXP, notes, examinerName, remainingItems);
         } finally {
             setIsSaving(false);
         }
@@ -281,12 +296,15 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0,
 
                 <div className="p-6 bg-slate-950 border-t border-slate-800 flex flex-col sm:flex-row gap-6 items-center justify-between [.theme-clear_&]:bg-slate-100 [.theme-clear_&]:border-slate-200">
                     {!loadingLevel && (
-                        <div className="flex gap-6 w-full sm:w-auto">
+                        <div className="flex flex-wrap gap-6 w-full sm:w-auto">
                             <div>
-                                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Rata-rata Nilai</div>
-                                <div className={`text-2xl font-black ${isLulus ? 'text-emerald-500' : 'text-red-500'}`}>
-                                    {averageScore || 0}
+                                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Lulus / Tidak Lulus</div>
+                                <div className="text-2xl font-black">
+                                    <span className="text-emerald-500">{passCount}</span>
+                                    <span className="text-slate-600 mx-1">/</span>
+                                    <span className="text-red-500">{failCount}</span>
                                 </div>
+                                <div className="text-[9px] text-slate-500">per kriteria, dinilai sendiri-sendiri</div>
                             </div>
                             <div>
                                 <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Total XP Didapat</div>

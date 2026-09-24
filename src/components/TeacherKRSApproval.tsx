@@ -3,7 +3,7 @@ import { krsStore, KRS_UPDATED_EVENT } from '../lib/krsStore';
 import { notificationStore } from '../lib/notificationStore';
 import { KRSSubmission, User } from '../types';
 import { Check, X, Calendar, MessageSquare, ChevronLeft, Award, Clock } from 'lucide-react';
-import { GradingModal } from './GradingModal';
+import { GradingModal, GradedCriterionResult } from './GradingModal';
 import { cleanSubItemText, isSubItem } from '../lib/criteriaHelper';
 import { supabase, isMockMode } from '../lib/supabase';
 import mockData from '../mocks/mockData';
@@ -271,10 +271,10 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
         setNotes('');
     };
 
-    const handleGrading = async (score: number, earnedXP: number, result: 'Lulus' | 'Tidak Lulus', gradingNotes: string, examinerName: string, gradedItems: string[], remainingItems: string[]) => {
+    const handleGrading = async (gradedResults: GradedCriterionResult[], earnedXP: number, gradingNotes: string, examinerName: string, remainingItems: string[]) => {
         if (!gradingSub) return;
         const studentName = gradingSub.siswa_nama;
-        const success = await krsStore.completeKRS(gradingSub.id, score, earnedXP, result, gradingNotes, examinerName, gradedItems, remainingItems);
+        const success = await krsStore.completeKRS(gradingSub.id, gradedResults, earnedXP, gradingNotes, examinerName, remainingItems);
 
         if (success) {
             // Find student's WA number for the notification
@@ -284,11 +284,16 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
                 if (s) wa = (s as any).wa_number || '';
             }
 
+            const passCount = gradedResults.filter(g => g.result === 'Lulus').length;
+            const failCount = gradedResults.length - passCount;
+            const resultSummary = `${passCount} Lulus${failCount > 0 ? `, ${failCount} Tidak Lulus` : ''}`;
+            const avgScore = Math.round(gradedResults.reduce((sum, g) => sum + g.score, 0) / gradedResults.length);
+
             setLastActionResult({
                 type: 'graded',
                 name: remainingItems.length > 0 ? `${studentName} (sebagian - ${remainingItems.length} kriteria tersisa)` : studentName,
-                result,
-                score,
+                result: resultSummary,
+                score: avgScore,
                 wa_number: wa
             });
             setGradingSub(null);
@@ -396,7 +401,7 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
                             {lastActionResult.type === 'graded' && (
                                 <button
                                     onClick={() => {
-                                        const msg = `Halo ${lastActionResult.name}! Selamat, Anda telah dinyatakan ${lastActionResult.result?.toUpperCase()} dalam ujian sertifikasi competency. Tetap semangat dan terus tingkatkan kompetensi Anda! - Tim SkillPas`;
+                                        const msg = `Halo ${lastActionResult.name}! Hasil ujian sertifikasi competency Anda: ${lastActionResult.result}. Tetap semangat dan terus tingkatkan kompetensi Anda! - Tim SkillPas`;
                                         const url = `https://wa.me/${lastActionResult.wa_number?.replace(/\D/g, '') || ''}?text=${encodeURIComponent(msg)}`;
                                         window.open(url, '_blank');
                                     }}
