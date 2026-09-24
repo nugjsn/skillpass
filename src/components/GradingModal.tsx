@@ -8,14 +8,16 @@ import { groupCriteria } from '../lib/criteriaHelper';
 interface GradingModalProps {
     submission: KRSSubmission;
     onClose: () => void;
-    // Updated signature to include earnedXP and examinerName
-    onConfirm: (score: number, earnedXP: number, result: 'Lulus' | 'Tidak Lulus', notes: string, examinerName: string) => void;
+    // Updated signature to include earnedXP, examinerName, and the criteria left ungraded
+    // (non-empty when the teacher only grades a subset now; the rest stays "scheduled" for later)
+    onConfirm: (score: number, earnedXP: number, result: 'Lulus' | 'Tidak Lulus', notes: string, examinerName: string, gradedItems: string[], remainingItems: string[]) => void;
     initialScore?: number;
     defaultExaminerName?: string;
 }
 
 export function GradingModal({ submission, onClose, onConfirm, initialScore = 0, defaultExaminerName = '' }: GradingModalProps) {
     const [scores, setScores] = useState<Record<number, number>>({});
+    const [included, setIncluded] = useState<Record<number, boolean>>({});
     const [notes, setNotes] = useState('');
     const [examinerName, setExaminerName] = useState(defaultExaminerName);
     const [isSaving, setIsSaving] = useState(false);
@@ -29,6 +31,9 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0,
     }, [submission.items]);
 
     const numTestedCriteria = criteriaGroups.length || 1;
+    const isIncluded = (idx: number) => included[idx] !== false;
+    const includedCount = criteriaGroups.reduce((acc, _, idx) => acc + (isIncluded(idx) ? 1 : 0), 0);
+    const canDeferItems = criteriaGroups.length > 1;
 
     useEffect(() => {
         const fetchLevel = async () => {
@@ -100,13 +105,15 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0,
         }));
     };
 
-    // Calculations
+    // Calculations - only over criteria included in THIS grading pass; deferred ones
+    // are excluded entirely and stay pending for a later session.
     const maxXPPerCriterion = levelRange / numTotalLevelCriteria;
 
     let totalXP = 0;
     let sumScore = 0;
 
     criteriaGroups.forEach((_, idx) => {
+        if (!isIncluded(idx)) return;
         const s = scores[idx] || 0;
         sumScore += s;
         if (s >= 75) {
@@ -114,17 +121,22 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0,
         }
     });
 
-    const averageScore = Math.round(sumScore / numTestedCriteria);
-    // If average is >= 75 and ALL items are >= 75, result is Lulus. 
-    // Usually if totalXP > 0 it means at least partially passed. 
+    const averageScore = includedCount > 0 ? Math.round(sumScore / includedCount) : 0;
+    // If average is >= 75 and ALL items are >= 75, result is Lulus.
+    // Usually if totalXP > 0 it means at least partially passed.
     // We'll let the overall result be 'Lulus' if average >= 75 for simplicity, or we can enforce all must be 75.
     const isLulus = averageScore >= 75;
 
     const handleConfirm = async () => {
-        // Validate all criteria are filled
+        if (includedCount === 0) {
+            alert("Pilih minimal satu kriteria untuk dinilai sekarang!");
+            return;
+        }
+
+        // Validate all INCLUDED criteria are filled
         for (let i = 0; i < numTestedCriteria; i++) {
-            if (scores[i] === undefined || scores[i] === null) {
-                alert("Harap isi nilai untuk semua kriteria kompetensi!");
+            if (isIncluded(i) && (scores[i] === undefined || scores[i] === null)) {
+                alert("Harap isi nilai untuk setiap kriteria yang dinilai sekarang!");
                 return;
             }
         }
@@ -140,7 +152,9 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0,
             // Round totalXP to 2 decimal places to avoid floating point precision issues, then floor it to whole number or keep decimal?
             // DB skill_siswa.skor is integer usually, we should round it.
             const roundedXP = Math.round(totalXP);
-            await onConfirm(averageScore, roundedXP, resultStatus, notes, examinerName);
+            const gradedItems = criteriaGroups.flatMap((g, idx) => isIncluded(idx) ? [g.main, ...g.subs] : []);
+            const remainingItems = criteriaGroups.flatMap((g, idx) => isIncluded(idx) ? [] : [g.main, ...g.subs]);
+            await onConfirm(averageScore, roundedXP, resultStatus, notes, examinerName, gradedItems, remainingItems);
         } finally {
             setIsSaving(false);
         }
@@ -187,8 +201,9 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0,
                                 {criteriaGroups.map((group, idx) => {
                                     const currentVal = scores[idx];
                                     const { grade, color } = getGradeDisplay(currentVal);
+                                    const rowIncluded = isIncluded(idx);
                                     return (
-                                        <div key={idx} className="bg-slate-950/50 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 sm:items-center [.theme-clear_&]:bg-white [.theme-clear_&]:border-slate-200">
+                                        <div key={idx} className={`bg-slate-950/50 border rounded-2xl p-4 flex flex-col sm:flex-row gap-4 sm:items-center [.theme-clear_&]:bg-white transition-opacity ${rowIncluded ? 'border-slate-800 [.theme-clear_&]:border-slate-200' : 'border-slate-800/50 opacity-50 [.theme-clear_&]:border-slate-200'}`}>
                                             <div className="flex-1">
                                                 <div className="text-sm font-bold text-white [.theme-clear_&]:text-slate-800">{group.main}</div>
                                                 {group.subs.length > 0 && (
@@ -196,8 +211,24 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0,
                                                         Mencakup {group.subs.length} sub-kriteria
                                                     </div>
                                                 )}
+                                                {!rowIncluded && (
+                                                    <div className="text-[10px] text-amber-500 mt-1 font-bold uppercase tracking-wider">
+                                                        Ditunda — dinilai di sesi berikutnya
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="flex items-center gap-3 shrink-0">
+                                                {canDeferItems && (
+                                                    <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase text-slate-400 cursor-pointer select-none">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={rowIncluded}
+                                                            onChange={(e) => setIncluded(prev => ({ ...prev, [idx]: e.target.checked }))}
+                                                            className="w-4 h-4 accent-indigo-500 cursor-pointer"
+                                                        />
+                                                        Nilai sekarang
+                                                    </label>
+                                                )}
                                                 <div className={`text-xs font-black w-10 text-right uppercase ${color}`}>
                                                     {grade}
                                                 </div>
@@ -206,9 +237,10 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0,
                                                     min="0"
                                                     max="100"
                                                     placeholder="0-100"
+                                                    disabled={!rowIncluded}
                                                     value={scores[idx] === undefined ? '' : scores[idx]}
                                                     onChange={(e) => handleScoreChange(idx, e.target.value)}
-                                                    className="w-20 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-center text-white focus:border-indigo-500 outline-none [.theme-clear_&]:bg-slate-50 [.theme-clear_&]:border-slate-300 [.theme-clear_&]:text-slate-900"
+                                                    className="w-20 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-center text-white focus:border-indigo-500 outline-none disabled:opacity-40 disabled:cursor-not-allowed [.theme-clear_&]:bg-slate-50 [.theme-clear_&]:border-slate-300 [.theme-clear_&]:text-slate-900"
                                                 />
                                             </div>
                                         </div>
@@ -262,6 +294,11 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0,
                                     +{Math.round(totalXP)} <span className="text-sm opacity-50">XP</span>
                                 </div>
                             </div>
+                            {includedCount < numTestedCriteria && (
+                                <div className="text-xs text-amber-500 font-semibold self-center">
+                                    {numTestedCriteria - includedCount} kriteria akan tersisa untuk dinilai di sesi berikutnya.
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -285,7 +322,7 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0,
                             ) : (
                                 <>
                                     <CheckCircle className="w-5 h-5" />
-                                    <span>Simpan Penilaian</span>
+                                    <span>{includedCount < numTestedCriteria ? 'Simpan Sebagian' : 'Simpan Penilaian'}</span>
                                 </>
                             )}
                         </button>

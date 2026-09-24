@@ -472,7 +472,7 @@ export const krsStore = {
         return true;
     },
 
-    async completeKRS(submissionId: string, score: number, earnedXP: number, result: 'Lulus' | 'Tidak Lulus', notes?: string, examinerName?: string): Promise<boolean> {
+    async completeKRS(submissionId: string, score: number, earnedXP: number, result: 'Lulus' | 'Tidak Lulus', notes?: string, examinerName?: string, gradedItems?: string[], remainingItems?: string[]): Promise<boolean> {
         let submission: KRSSubmission | undefined;
         // Fetch fresh data
         if (isMockMode) {
@@ -494,13 +494,24 @@ export const krsStore = {
         const isoDate = now.split('T')[0];
         const displayDate = new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
 
-        const krsUpdates: any = {
-            status: 'completed',
-            updated_at: now,
-            final_score: score,
-            exam_date: null,
-            notes: notes || submission.notes
-        };
+        // Partial grading: some criteria in this submission are graded now, the rest stay
+        // "scheduled" (with only the ungraded items left in `items`) for a later session.
+        const isPartial = !!(remainingItems && remainingItems.length > 0);
+
+        const krsUpdates: any = isPartial
+            ? {
+                status: 'scheduled',
+                updated_at: now,
+                items: remainingItems,
+                notes: notes || submission.notes
+            }
+            : {
+                status: 'completed',
+                updated_at: now,
+                final_score: score,
+                exam_date: null,
+                notes: notes || submission.notes
+            };
 
         // 1. Update KRS
         if (isMockMode) {
@@ -508,7 +519,7 @@ export const krsStore = {
             const idx = subs.findIndex(s => s.id === submissionId);
             if (idx !== -1) {
                 subs[idx] = { ...subs[idx], ...krsUpdates };
-                delete subs[idx].exam_date;
+                if (!isPartial) delete subs[idx].exam_date;
                 localStorage.setItem('skillpas_krs_submissions', JSON.stringify(subs));
             }
         } else {
@@ -589,12 +600,16 @@ export const krsStore = {
         }
 
         // Add history (both for Lulus and Tidak Lulus)
+        const gradedUnitKompetensi = (gradedItems && gradedItems.length > 0)
+            ? gradedItems.join(', ')
+            : (submission.items || []).join(', ');
+
         if (isMockMode) {
             mockData.mockCompetencyHistory.push({
                 id: `hist-${Date.now()}`,
                 siswa_id: submission.siswa_id,
                 level_id: levelObj.id,
-                unit_kompetensi: (submission.items || []).join(', '),
+                unit_kompetensi: gradedUnitKompetensi,
                 aktivitas_pembuktian: 'Ujian Sertifikasi Terverifikasi',
                 penilai: examinerName || 'Guru Produktif',
                 hasil: result,
@@ -607,7 +622,7 @@ export const krsStore = {
             const historyEntry = {
                 siswa_id: dbSiswaId,
                 level_id: finalLevelId,
-                unit_kompetensi: (submission.items || []).join(', '),
+                unit_kompetensi: gradedUnitKompetensi,
                 aktivitas_pembuktian: 'Ujian Sertifikasi Terverifikasi',
                 penilai: examinerName || 'Guru Produktif',
                 hasil: result,
@@ -632,8 +647,10 @@ export const krsStore = {
             notificationStore.actions.addNotification({
                 user_id: studentUserId,
                 type: result === 'Lulus' ? 'success' : 'warning',
-                title: 'Hasil Ujian Sertifikasi',
-                message: `Halo ${submission.siswa_nama}, ujian Anda telah selesai dengan hasil: ${result.toUpperCase()}. Skor Akhir: ${score}.`,
+                title: isPartial ? 'Hasil Sebagian Kriteria Ujian' : 'Hasil Ujian Sertifikasi',
+                message: isPartial
+                    ? `Halo ${submission.siswa_nama}, sebagian kriteria ujian Anda telah dinilai dengan hasil: ${result.toUpperCase()} (Skor: ${score}). Kriteria yang tersisa akan dinilai menyusul.`
+                    : `Halo ${submission.siswa_nama}, ujian Anda telah selesai dengan hasil: ${result.toUpperCase()}. Skor Akhir: ${score}.`,
             });
         } catch (e) {
             console.warn("Failed to send student notification", e);
@@ -641,8 +658,10 @@ export const krsStore = {
 
         notificationStore.actions.addNotification({
             type: 'success',
-            title: 'Penilaian Disimpan',
-            message: `Hasil ujian ${submission.siswa_nama} telah berhasil diverifikasi.`,
+            title: isPartial ? 'Penilaian Sebagian Disimpan' : 'Penilaian Disimpan',
+            message: isPartial
+                ? `Sebagian hasil ujian ${submission.siswa_nama} tersimpan. Sisa kriteria menunggu penilaian berikutnya.`
+                : `Hasil ujian ${submission.siswa_nama} telah berhasil diverifikasi.`,
         });
 
         return true;

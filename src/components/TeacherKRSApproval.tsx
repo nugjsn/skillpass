@@ -271,10 +271,10 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
         setNotes('');
     };
 
-    const handleGrading = async (score: number, earnedXP: number, result: 'Lulus' | 'Tidak Lulus', gradingNotes: string, examinerName: string) => {
+    const handleGrading = async (score: number, earnedXP: number, result: 'Lulus' | 'Tidak Lulus', gradingNotes: string, examinerName: string, gradedItems: string[], remainingItems: string[]) => {
         if (!gradingSub) return;
         const studentName = gradingSub.siswa_nama;
-        const success = await krsStore.completeKRS(gradingSub.id, score, earnedXP, result, gradingNotes, examinerName);
+        const success = await krsStore.completeKRS(gradingSub.id, score, earnedXP, result, gradingNotes, examinerName, gradedItems, remainingItems);
 
         if (success) {
             // Find student's WA number for the notification
@@ -284,7 +284,13 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
                 if (s) wa = (s as any).wa_number || '';
             }
 
-            setLastActionResult({ type: 'graded', name: studentName, result, score, wa_number: wa });
+            setLastActionResult({
+                type: 'graded',
+                name: remainingItems.length > 0 ? `${studentName} (sebagian - ${remainingItems.length} kriteria tersisa)` : studentName,
+                result,
+                score,
+                wa_number: wa
+            });
             setGradingSub(null);
             loadSubmissions();
         } else {
