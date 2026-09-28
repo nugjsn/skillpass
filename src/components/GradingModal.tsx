@@ -54,13 +54,13 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0,
                         supabase.from('level_skill').select('*').order('urutan', { ascending: true }),
                         supabase.from('level_skill_jurusan').select('*').eq('jurusan_id', submission.jurusan_id)
                     ]);
-                    
+
                     const levelsData = levelsResult.data || [];
                     const overrides = overridesResult.data || [];
                     const levels = levelsData.map((l: any) => {
                         const ov = overrides.find((o: any) => o.level_id === l.id);
                         const finalHasilBelajar = ov?.hasil_belajar || l.hasil_belajar;
-                        
+
                         let criteria: string[] = [];
                         try {
                             if (finalHasilBelajar && finalHasilBelajar.trim().startsWith('[')) {
@@ -80,9 +80,13 @@ export function GradingModal({ submission, onClose, onConfirm, initialScore = 0,
                 }
 
                 if (currentLevel) {
-                    // Range = max_skor - (min_skor-1) except for first level which might be max-min
-                    let min = currentLevel.min_skor;
-                    if (currentLevel.urutan > 1) min -= 1; // e.g. 26 to 50 is a range of 25 (50-25)
+                    // Range = max_skor - (min_skor - 1), i.e. the level's full inclusive span PLUS
+                    // the 1 point needed to actually cross into the next level's min_skor.
+                    // Applied to EVERY level (including the first) - previously the first level
+                    // was excluded from this "-1", so a student passing 100% of Beginner 1's
+                    // criteria landed exactly on max_skor (25) and could never reach the next
+                    // level's min_skor (26), permanently blocking promotion out of Beginner 1.
+                    const min = currentLevel.min_skor - 1;
                     const range = Math.max(0, currentLevel.max_skor - min);
                     setLevelRange(range);
 
