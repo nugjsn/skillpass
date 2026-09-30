@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { krsStore, KRS_UPDATED_EVENT } from '../lib/krsStore';
+import { krsStore, KRS_UPDATED_EVENT, parseScoreFromCatatan } from '../lib/krsStore';
 import { notificationStore } from '../lib/notificationStore';
-import { KRSSubmission, User } from '../types';
-import { Check, X, Calendar, MessageSquare, ChevronLeft, Award, Clock } from 'lucide-react';
+import { KRSSubmission, User, CompetencyHistory } from '../types';
+import { Check, X, Calendar, MessageSquare, ChevronLeft, Award, Clock, Pencil, History } from 'lucide-react';
 import { GradingModal, GradedCriterionResult } from './GradingModal';
 import { cleanSubItemText, isSubItem } from '../lib/criteriaHelper';
 import { supabase, isMockMode } from '../lib/supabase';
 import mockData from '../mocks/mockData';
+
+type HistoryRow = CompetencyHistory & { siswa_nama: string; siswa_kelas: string };
 
 interface TeacherKRSApprovalProps {
     onBack: () => void;
@@ -19,7 +21,14 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
     const [selectedSub, setSelectedSub] = useState<KRSSubmission | null>(null);
     const [examDate, setExamDate] = useState('');
     const [notes, setNotes] = useState('');
-    const [activeTab, setActiveTab] = useState<'pending' | 'grading'>('pending');
+    const [activeTab, setActiveTab] = useState<'pending' | 'grading' | 'history'>('pending');
+    const [historyList, setHistoryList] = useState<HistoryRow[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
+    const [editingHistory, setEditingHistory] = useState<HistoryRow | null>(null);
+    const [editScore, setEditScore] = useState('');
+    const [editExaminerName, setEditExaminerName] = useState('');
+    const [editNotes, setEditNotes] = useState('');
+    const [savingEdit, setSavingEdit] = useState(false);
     const [gradingSub, setGradingSub] = useState<KRSSubmission | null>(null);
     const [currentScore, setCurrentScore] = useState<number>(80);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -93,6 +102,55 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
         window.addEventListener(KRS_UPDATED_EVENT, loadSubmissions);
         return () => window.removeEventListener(KRS_UPDATED_EVENT, loadSubmissions);
     }, [user.id, userRole, activeTab]);
+
+    const loadHistory = async () => {
+        setLoadingHistory(true);
+        try {
+            const rows = await krsStore.getHistoryForJurusan(user.jurusan_id, user.sekolah_id);
+            setHistoryList(rows);
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab !== 'history') return;
+        loadHistory();
+        window.addEventListener(KRS_UPDATED_EVENT, loadHistory);
+        return () => window.removeEventListener(KRS_UPDATED_EVENT, loadHistory);
+    }, [activeTab, user.jurusan_id, user.sekolah_id]);
+
+    const openEditHistory = (row: HistoryRow) => {
+        setEditingHistory(row);
+        setEditScore(String(parseScoreFromCatatan(row.catatan) ?? ''));
+        setEditExaminerName(row.penilai || '');
+        setEditNotes((row.catatan || '').replace(/Nilai:\s*\d+\s*\(Grade[^)]*\)\.\s*/, ''));
+    };
+
+    const handleSaveEditHistory = async () => {
+        if (!editingHistory) return;
+        const scoreNum = parseInt(editScore, 10);
+        if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > 100) {
+            alert('Harap isi nilai yang valid (0-100)!');
+            return;
+        }
+        if (!editExaminerName.trim()) {
+            alert('Harap isi nama penguji!');
+            return;
+        }
+        setSavingEdit(true);
+        try {
+            const success = await krsStore.editHistoryEntry(editingHistory.id, scoreNum, editExaminerName, editNotes);
+            if (success) {
+                setEditingHistory(null);
+                loadHistory();
+            } else {
+                alert('Gagal menyimpan perubahan. Silakan coba lagi.');
+            }
+        } finally {
+            setSavingEdit(false);
+        }
+    };
 
     useEffect(() => {
         const fetchMasteryHistory = async () => {
@@ -445,31 +503,94 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
                                 Penilaian Ujian
                             </button>
                         )}
-                    </div>
-
-                    {/* Grouping toggle */}
-                    <div className="flex items-center gap-2 bg-[color:var(--glass)] border border-white/10 p-1.5 rounded-2xl w-fit [.theme-clear_&]:bg-slate-200/50 [.theme-clear_&]:border-slate-300">
-                        <span className="pl-2 pr-1 text-[10px] font-black uppercase tracking-wider text-[color:var(--text-muted)]">Kelompokkan:</span>
-                        {([
-                            { key: 'none', label: 'Semua' },
-                            { key: 'kelas', label: 'Per Kelas' },
-                            { key: 'kriteria', label: 'Per Kriteria' },
-                        ] as const).map(opt => (
+                        {['teacher_produktif', 'hod', 'admin', 'teacher'].includes(userRole) && (
                             <button
-                                key={opt.key}
-                                onClick={() => setGroupBy(opt.key)}
-                                className={`px-4 py-2 rounded-xl font-bold text-xs transition-all ${groupBy === opt.key
+                                onClick={() => setActiveTab('history')}
+                                className={`px-8 py-3 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${activeTab === 'history'
                                     ? 'bg-[color:var(--accent-1)] text-white shadow-lg'
                                     : 'text-[color:var(--text-muted)] hover:text-[color:var(--text-primary)]'
                                     }`}
                             >
-                                {opt.label}
+                                <History className="w-4 h-4" />
+                                Riwayat Penilaian
                             </button>
-                        ))}
+                        )}
                     </div>
+
+                    {/* Grouping toggle */}
+                    {activeTab !== 'history' && (
+                        <div className="flex items-center gap-2 bg-[color:var(--glass)] border border-white/10 p-1.5 rounded-2xl w-fit [.theme-clear_&]:bg-slate-200/50 [.theme-clear_&]:border-slate-300">
+                            <span className="pl-2 pr-1 text-[10px] font-black uppercase tracking-wider text-[color:var(--text-muted)]">Kelompokkan:</span>
+                            {([
+                                { key: 'none', label: 'Semua' },
+                                { key: 'kelas', label: 'Per Kelas' },
+                                { key: 'kriteria', label: 'Per Kriteria' },
+                            ] as const).map(opt => (
+                                <button
+                                    key={opt.key}
+                                    onClick={() => setGroupBy(opt.key)}
+                                    className={`px-4 py-2 rounded-xl font-bold text-xs transition-all ${groupBy === opt.key
+                                        ? 'bg-[color:var(--accent-1)] text-white shadow-lg'
+                                        : 'text-[color:var(--text-muted)] hover:text-[color:var(--text-primary)]'
+                                        }`}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
-                {loading ? (
+                {activeTab === 'history' ? (
+                    <div className="space-y-4">
+                        {loadingHistory ? (
+                            <div className="flex justify-center py-20">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-b-indigo-500 font-bold text-indigo-500"></div>
+                            </div>
+                        ) : historyList.length === 0 ? (
+                            <div className="text-center py-20 card-glass border border-white/10 rounded-3xl [.theme-clear_&]:bg-white [.theme-clear_&]:border-slate-200">
+                                <History className="w-16 h-16 text-[color:var(--text-muted)] mx-auto mb-4 opacity-50" />
+                                <h2 className="text-xl font-bold text-[color:var(--text-muted)]">Belum ada riwayat penilaian</h2>
+                            </div>
+                        ) : (
+                            historyList.map((row) => (
+                                <div
+                                    key={row.id}
+                                    className="card-glass border border-white/6 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4 [.theme-clear_&]:border-slate-200 [.theme-clear_&]:shadow-sm"
+                                >
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="text-xs font-black text-[color:var(--accent-1)] uppercase [.theme-clear_&]:text-emerald-600">{row.siswa_kelas}</span>
+                                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${row.hasil.toLowerCase() === 'lulus' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                                                {row.hasil}
+                                            </span>
+                                        </div>
+                                        <h3 className="text-base font-bold text-[color:var(--text-primary)] truncate">{row.siswa_nama}</h3>
+                                        <p className="text-sm text-[color:var(--text-muted)] truncate">{row.unit_kompetensi}</p>
+                                        <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-500 [.theme-clear_&]:text-slate-400 flex-wrap">
+                                            <span>{row.tanggal}</span>
+                                            <span>•</span>
+                                            <span>Penguji: {row.penilai}</span>
+                                            {parseScoreFromCatatan(row.catatan) !== null && (
+                                                <>
+                                                    <span>•</span>
+                                                    <span>Nilai: {parseScoreFromCatatan(row.catatan)}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => openEditHistory(row)}
+                                        className="shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl font-bold text-sm text-[color:var(--text-primary)] transition-all [.theme-clear_&]:bg-white [.theme-clear_&]:border-slate-300"
+                                    >
+                                        <Pencil className="w-4 h-4" />
+                                        Edit Nilai
+                                    </button>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                ) : loading ? (
                     <div className="flex justify-center py-20">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-b-indigo-500 font-bold text-indigo-500"></div>
                     </div>
@@ -647,6 +768,82 @@ export function TeacherKRSApproval({ onBack, user }: TeacherKRSApprovalProps) {
                     onClose={() => setGradingSub(null)}
                     onConfirm={handleGrading}
                 />
+            )}
+
+            {/* Edit History Modal - lets an examiner correct a previously-saved grading mistake */}
+            {editingHistory && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+                    <div className="w-full max-w-lg bg-[color:var(--bg-from)] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] [.theme-clear_&]:bg-white">
+                        <div className="p-6 border-b border-white/10 [.theme-clear_&]:border-slate-200 flex justify-between items-start">
+                            <div>
+                                <h2 className="text-xl font-black uppercase text-[color:var(--text-primary)]">Edit Nilai</h2>
+                                <p className="text-sm text-[color:var(--text-muted)]">{editingHistory.siswa_nama} — {editingHistory.unit_kompetensi}</p>
+                            </div>
+                            <button
+                                onClick={() => setEditingHistory(null)}
+                                className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors [.theme-clear_&]:bg-slate-100"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-[color:var(--text-muted)] uppercase tracking-widest">Nilai (0-100)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    value={editScore}
+                                    onChange={(e) => setEditScore(e.target.value)}
+                                    placeholder="0-100"
+                                    className="w-32 px-4 py-3 bg-[color:var(--glass)] border border-white/10 rounded-xl text-[color:var(--text-primary)] focus:border-[color:var(--accent-1)] transition-all outline-none"
+                                />
+                                <p className="text-[10px] text-[color:var(--text-muted)]">Hasil (Lulus/Tidak Lulus) dihitung otomatis dari nilai ini (≥75 = Lulus). Skor total siswa akan disesuaikan otomatis.</p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-[color:var(--text-muted)] uppercase tracking-widest flex items-center gap-2">
+                                    <Award className="w-4 h-4 text-[color:var(--accent-1)]" /> Nama Penguji
+                                </label>
+                                <input
+                                    type="text"
+                                    value={editExaminerName}
+                                    onChange={(e) => setEditExaminerName(e.target.value)}
+                                    placeholder="Ketik nama penguji..."
+                                    className="w-full px-4 py-3 bg-[color:var(--glass)] border border-white/10 rounded-xl text-[color:var(--text-primary)] focus:border-[color:var(--accent-1)] transition-all outline-none text-sm"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-black text-[color:var(--text-muted)] uppercase tracking-widest flex items-center gap-2">
+                                    <MessageSquare className="w-4 h-4 text-[color:var(--accent-1)]" /> Catatan (Opsional)
+                                </label>
+                                <textarea
+                                    value={editNotes}
+                                    onChange={(e) => setEditNotes(e.target.value)}
+                                    className="w-full h-20 px-4 py-3 bg-[color:var(--glass)] border border-white/10 rounded-xl text-[color:var(--text-primary)] focus:border-[color:var(--accent-1)] transition-all outline-none resize-none text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-white/5 [.theme-clear_&]:border-slate-200 flex gap-4">
+                            <button
+                                onClick={() => setEditingHistory(null)}
+                                className="flex-1 py-3 bg-white/5 border border-white/10 text-[color:var(--text-primary)] rounded-xl font-bold hover:bg-white/10 transition-all"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={handleSaveEditHistory}
+                                disabled={savingEdit}
+                                className="flex-1 py-3 bg-[color:var(--accent-1)] text-white rounded-xl font-bold hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-[color:var(--accent-1)]/20 disabled:opacity-50"
+                            >
+                                {savingEdit ? 'Menyimpan...' : 'Simpan Perubahan'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* Review Modal */}

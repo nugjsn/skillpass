@@ -1,9 +1,26 @@
-import { KRSSubmission } from '../types';
+import { KRSSubmission, CompetencyHistory } from '../types';
 import mockData from '../mocks/mockData';
 import { supabase, isMockMode } from './supabase';
 import { notificationStore } from './notificationStore';
+import { groupCriteria } from './criteriaHelper';
 
 export const KRS_UPDATED_EVENT = 'krs-updated';
+
+// Shared formatting so a freshly-graded entry and a later edit of that same entry produce
+// an identically-structured "Nilai: X (Grade Y). notes" catatan - always including the score,
+// even for a failing result, so it stays editable/auditable later.
+export const formatGradeCatatan = (score: number, notes?: string) => {
+    const grade = score >= 90 ? 'A+' : score >= 80 ? 'A' : score >= 75 ? 'B' : 'Gagal';
+    return `Nilai: ${score} (Grade ${grade}). ${notes || ''}`;
+};
+
+// Extracts the numeric score from a catatan string previously written by formatGradeCatatan,
+// falling back to null when the entry predates this format (old "Tidak Lulus" rows had no score).
+export const parseScoreFromCatatan = (catatan?: string): number | null => {
+    if (!catatan) return null;
+    const match = catatan.match(/Nilai:\s*(\d+)/i);
+    return match ? parseInt(match[1], 10) : null;
+};
 
 const getSekolahId = () => {
     try {
@@ -612,9 +629,6 @@ export const krsStore = {
 
         // Add history - ONE row per criterion, each with its own score & Lulus/Tidak Lulus,
         // so a passing criterion never masks a failing one (or vice versa) under one averaged verdict.
-        const gradeCatatan = (s: number, r: 'Lulus' | 'Tidak Lulus') =>
-            r === 'Lulus' ? `Nilai: ${s} (Grade ${s >= 90 ? 'A+' : s >= 80 ? 'A' : 'B'}). ${notes || ''}` : notes || '';
-
         if (isMockMode) {
             gradedResults.forEach(g => {
                 mockData.mockCompetencyHistory.push({
@@ -626,7 +640,7 @@ export const krsStore = {
                     penilai: examinerName || 'Guru Produktif',
                     hasil: g.result,
                     tanggal: displayDate,
-                    catatan: gradeCatatan(g.score, g.result)
+                    catatan: formatGradeCatatan(g.score, notes)
                 });
             });
         } else {
@@ -640,7 +654,7 @@ export const krsStore = {
                 penilai: examinerName || 'Guru Produktif',
                 hasil: g.result,
                 tanggal: isoDate,
-                catatan: gradeCatatan(g.score, g.result),
+                catatan: formatGradeCatatan(g.score, notes),
                 sekolah_id: getSekolahId()
             }));
 
@@ -847,6 +861,149 @@ export const krsStore = {
             if (error) {
                 console.error("Error resetting KRS", error);
                 return false;
+            }
+        }
+
+        this.notifyUpdate();
+        return true;
+    },
+
+    // Fetch graded history for every student in a jurusan (+ sekolah, when set) so a teacher/HOD
+    // can review and correct past grading mistakes. competency_history has no FK relationship to
+    // siswa in the DB, so this resolves student names/classes in a separate lookup rather than
+    // an embedded join.
+    async getHistoryForJurusan(jurusanId: string, sekolahId?: string): Promise<(CompetencyHistory & { siswa_nama: string; siswa_kelas: string })[]> {
+        if (isMockMode) {
+            const siswaList = mockData.mockSiswa.filter(s => s.jurusan_id === jurusanId);
+            const siswaMap = new Map(siswaList.map(s => [s.id, s]));
+            return mockData.mockCompetencyHistory
+                .filter((h: any) => siswaMap.has(h.siswa_id))
+                .map((h: any) => ({ ...h, siswa_nama: siswaMap.get(h.siswa_id)?.nama || '-', siswa_kelas: siswaMap.get(h.siswa_id)?.kelas || '-' }))
+                .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        }
+
+        const siswaQuery = supabase.from('siswa').select('id, nama, kelas').eq('jurusan_id', jurusanId);
+        if (sekolahId) siswaQuery.eq('sekolah_id', sekolahId);
+        const { data: siswaList } = await siswaQuery;
+        const ids = (siswaList || []).map((s: any) => s.id);
+        if (ids.length === 0) return [];
+
+        const { data: hist } = await supabase
+            .from('competency_history')
+            .select('*')
+            .in('siswa_id', ids)
+            .order('created_at', { ascending: false });
+
+        const siswaMap = new Map((siswaList || []).map((s: any) => [s.id, s]));
+        return (hist || []).map((h: any) => ({
+            ...h,
+            siswa_nama: siswaMap.get(h.siswa_id)?.nama || '-',
+            siswa_kelas: siswaMap.get(h.siswa_id)?.kelas || '-'
+        }));
+    },
+
+    // Compute the same "max XP per criterion" a level grants that GradingModal uses, so editing
+    // a past entry adjusts the student's score by the correct delta rather than a guess.
+    async _computeMaxXPPerCriterion(levelId: string, jurusanId: string): Promise<number> {
+        if (isMockMode) {
+            const levels = [...mockData.mockLevels].sort((a, b) => a.urutan - b.urutan);
+            const level = levels.find(l => l.id === levelId);
+            if (!level) return 0;
+            const min = level.min_skor - 1;
+            const range = Math.max(0, level.max_skor - min);
+            const groups = groupCriteria((level as any).criteria || []);
+            return range / Math.max(1, groups.length);
+        }
+
+        const [levelResult, overrideResult] = await Promise.all([
+            supabase.from('level_skill').select('*').eq('id', levelId).maybeSingle(),
+            supabase.from('level_skill_jurusan').select('*').eq('jurusan_id', jurusanId).eq('level_id', levelId).maybeSingle()
+        ]);
+        const level = levelResult.data;
+        if (!level) return 0;
+
+        const finalHasilBelajar = overrideResult.data?.hasil_belajar || level.hasil_belajar;
+        let criteria: string[] = [];
+        try {
+            if (finalHasilBelajar && finalHasilBelajar.trim().startsWith('[')) {
+                criteria = JSON.parse(finalHasilBelajar);
+            } else if (finalHasilBelajar) {
+                criteria = [finalHasilBelajar];
+            }
+        } catch (e) {
+            criteria = [finalHasilBelajar];
+        }
+
+        const min = level.min_skor - 1;
+        const range = Math.max(0, level.max_skor - min);
+        const groups = groupCriteria(criteria);
+        return range / Math.max(1, groups.length);
+    },
+
+    // Correct a previously-saved grade (wrong score typed in, wrong examiner name, etc). Adjusts
+    // the student's cumulative skor by the difference between the old and new XP contribution of
+    // THIS entry only, and re-buckets their level if the correction crosses a threshold.
+    async editHistoryEntry(historyId: string, newScore: number, examinerName: string, notes: string): Promise<boolean> {
+        let entry: CompetencyHistory | undefined;
+        if (isMockMode) {
+            entry = mockData.mockCompetencyHistory.find((h: any) => h.id === historyId);
+        } else {
+            const { data } = await supabase.from('competency_history').select('*').eq('id', historyId).maybeSingle();
+            entry = data as any;
+        }
+        if (!entry) return false;
+
+        const newResult: 'Lulus' | 'Tidak Lulus' = newScore >= 75 ? 'Lulus' : 'Tidak Lulus';
+        const newCatatan = formatGradeCatatan(newScore, notes);
+
+        // Figure out the jurusan this entry belongs to (needed to recompute the XP-per-criterion rate)
+        let jurusanId: string | null = null;
+        if (isMockMode) {
+            const siswa = mockData.mockSiswa.find(s => s.id === entry!.siswa_id);
+            jurusanId = siswa?.jurusan_id || null;
+        } else {
+            const { data: siswa } = await supabase.from('siswa').select('jurusan_id').eq('id', entry.siswa_id).maybeSingle();
+            jurusanId = siswa?.jurusan_id || null;
+        }
+
+        const maxXPPerCriterion = jurusanId ? await this._computeMaxXPPerCriterion(entry.level_id, jurusanId) : 0;
+        const oldResult = entry.hasil;
+        const oldContribution = oldResult === 'Lulus' ? Math.round(maxXPPerCriterion) : 0;
+        const newContribution = newResult === 'Lulus' ? Math.round(maxXPPerCriterion) : 0;
+        const delta = newContribution - oldContribution;
+
+        // 1. Update the history row itself
+        if (isMockMode) {
+            const idx = mockData.mockCompetencyHistory.findIndex((h: any) => h.id === historyId);
+            if (idx >= 0) {
+                mockData.mockCompetencyHistory[idx] = { ...mockData.mockCompetencyHistory[idx], hasil: newResult, catatan: newCatatan, penilai: examinerName };
+            }
+        } else {
+            const { error } = await supabase.from('competency_history')
+                .update({ hasil: newResult, catatan: newCatatan, penilai: examinerName })
+                .eq('id', historyId);
+            if (error) { console.error('Failed to update history entry', error); return false; }
+        }
+
+        // 2. Apply the score delta to the student's cumulative XP, if it changed
+        if (delta !== 0) {
+            if (isMockMode) {
+                const skillIdx = mockData.mockSkillSiswa.findIndex(s => s.siswa_id === entry!.siswa_id);
+                if (skillIdx >= 0) {
+                    const newTotal = Math.max(0, (mockData.mockSkillSiswa[skillIdx].skor || 0) + delta);
+                    mockData.mockSkillSiswa[skillIdx].skor = newTotal;
+                    const lvl = mockData.mockLevels.find(l => newTotal >= l.min_skor && newTotal <= l.max_skor);
+                    if (lvl) mockData.mockSkillSiswa[skillIdx].level_id = lvl.id;
+                }
+            } else {
+                const { data: currentSkill } = await supabase.from('skill_siswa').select('skor').eq('siswa_id', entry.siswa_id).maybeSingle();
+                const newTotal = Math.max(0, (currentSkill?.skor || 0) + delta);
+                const { data: levelRecord } = await supabase.from('level_skill').select('id').gte('max_skor', newTotal).lte('min_skor', newTotal).maybeSingle();
+                if (currentSkill) {
+                    await supabase.from('skill_siswa')
+                        .update({ skor: newTotal, ...(levelRecord ? { level_id: levelRecord.id } : {}), updated_at: new Date().toISOString() })
+                        .eq('siswa_id', entry.siswa_id);
+                }
             }
         }
 
